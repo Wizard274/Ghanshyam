@@ -1,0 +1,214 @@
+import React, { useState, useEffect } from "react";
+import { Link, useSearchParams, useNavigate } from "react-router-dom";
+import { orderAPI } from "../services/api";
+import "../styles/dashboard.css";
+
+const STATUS_OPTIONS = ["All", "Pending", "Cutting", "Stitching", "Ready", "Delivered"];
+const STATUS_COLORS = { Pending: "badge-pending", Cutting: "badge-cutting", Stitching: "badge-stitching", Ready: "badge-ready", Delivered: "badge-delivered" };
+
+export default function AdminOrders() {
+  const navigate = useNavigate();
+  const [orders, setOrders] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState("");
+  const [status, setStatus] = useState("All");
+  const [customerFilter, setCustomerFilter] = useState(null); // { id, name }
+  const [deleteConfirm, setDeleteConfirm] = useState(null);
+  const [deleting, setDeleting] = useState(false);
+  const [msg, setMsg] = useState({ type: "", text: "" });
+  const [searchParams] = useSearchParams();
+
+  useEffect(() => {
+    const s = searchParams.get("status");
+    const uid = searchParams.get("userId");
+    const uname = searchParams.get("customerName");
+    if (s) setStatus(s);
+    if (uid) setCustomerFilter({ id: uid, name: decodeURIComponent(uname || "") });
+    fetchOrders(search, s || "All", uid || null);
+  }, []);
+
+  const fetchOrders = async (q = "", s = "All", uid = null) => {
+    setLoading(true);
+    try {
+      const params = {};
+      if (q) params.search = q;
+      if (s && s !== "All") params.status = s;
+      if (uid) params.userId = uid;
+      const res = await orderAPI.getAll(params);
+      setOrders(res.data.orders);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const clearCustomerFilter = () => {
+    setCustomerFilter(null);
+    fetchOrders(search, status, null);
+    navigate("/admin/orders", { replace: true });
+  };
+
+  const handleSearch = (e) => {
+    setSearch(e.target.value);
+    fetchOrders(e.target.value, status, customerFilter?.id || null);
+  };
+
+  const handleStatus = (s) => {
+    setStatus(s);
+    fetchOrders(search, s, customerFilter?.id || null);
+  };
+
+  const handleDelete = async (id) => {
+    setDeleting(true);
+    try {
+      await orderAPI.delete(id);
+      setOrders((prev) => prev.filter((o) => o._id !== id));
+      setDeleteConfirm(null);
+      setMsg({ type: "success", text: "Order deleted successfully" });
+      setTimeout(() => setMsg({ type: "", text: "" }), 3000);
+    } catch (err) {
+      setMsg({ type: "error", text: err.response?.data?.message || "Delete failed" });
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  return (
+    <div>
+      {/* Delete Confirm Modal */}
+      {deleteConfirm && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
+          <div className="card" style={{ maxWidth: 400, width: "100%", textAlign: "center" }}>
+            <div style={{ fontSize: 48, marginBottom: 12 }}>🗑️</div>
+            <h3 style={{ fontFamily: "var(--font-display)", marginBottom: 8 }}>Delete Order?</h3>
+            <p style={{ color: "var(--text-gray)", marginBottom: 6 }}>
+              Delete order <strong>{deleteConfirm.orderNumber}</strong>?
+            </p>
+            <p style={{ color: "var(--danger)", fontSize: 13, marginBottom: 24 }}>
+              This will also delete the associated invoice permanently.
+            </p>
+            <div style={{ display: "flex", gap: 10, justifyContent: "center" }}>
+              <button className="btn btn-ghost" onClick={() => setDeleteConfirm(null)}>Cancel</button>
+              <button className="btn btn-danger" onClick={() => handleDelete(deleteConfirm._id)} disabled={deleting}>
+                {deleting ? <><i className="fa-solid fa-spinner fa-spin" /> Deleting...</> : <><i className="fa-solid fa-trash" /> Delete</>}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
+        <div>
+          <h1 className="page-title" style={{ margin: 0 }}>
+            {customerFilter ? `${customerFilter.name}'s Orders` : "All Orders"}
+          </h1>
+          {customerFilter && (
+            <button onClick={clearCustomerFilter} style={{ background: "none", border: "none", color: "var(--primary)", fontSize: 13, cursor: "pointer", marginTop: 4 }}>
+              <i className="fa-solid fa-arrow-left" style={{ marginRight: 4 }} />
+              Show all orders
+            </button>
+          )}
+        </div>
+        <Link to="/admin/orders/create" className="btn btn-primary">
+          <i className="fa-solid fa-plus" /> Create Order
+        </Link>
+      </div>
+
+      {msg.text && <div className={`alert alert-${msg.type}`}>{msg.text}</div>}
+
+      {/* Customer filter active banner */}
+      {customerFilter && (
+        <div className="alert alert-info" style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <span><i className="fa-solid fa-filter" style={{ marginRight: 8 }} />Showing orders for: <strong>{customerFilter.name}</strong></span>
+          <button onClick={clearCustomerFilter} style={{ background: "none", border: "none", color: "var(--info)", cursor: "pointer", fontWeight: 600 }}>
+            <i className="fa-solid fa-times" /> Clear Filter
+          </button>
+        </div>
+      )}
+
+      <div className="filter-bar">
+        <div className="search-wrap">
+          <i className="search-icon fa-solid fa-search" />
+          <input type="text" placeholder="Search by customer or order number..." value={search} onChange={handleSearch} />
+        </div>
+        <select value={status} onChange={(e) => handleStatus(e.target.value)}>
+          {STATUS_OPTIONS.map((s) => <option key={s} value={s}>{s}</option>)}
+        </select>
+      </div>
+
+      <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap" }}>
+        {STATUS_OPTIONS.map((s) => (
+          <button key={s} onClick={() => handleStatus(s)}
+            className={`btn btn-sm ${status === s ? "btn-primary" : "btn-ghost"}`}
+            style={{ fontSize: 12 }}>
+            {s}
+          </button>
+        ))}
+      </div>
+
+      {loading ? (
+        <div style={{ display: "flex", justifyContent: "center", padding: 60 }}>
+          <i className="fa-solid fa-spinner fa-spin" style={{ fontSize: 32, color: "var(--primary)" }} />
+        </div>
+      ) : orders.length === 0 ? (
+        <div className="card"><div className="empty-state"><i className="fa-solid fa-inbox" /><p>No orders found</p></div></div>
+      ) : (
+        <div className="card" style={{ padding: 0, overflow: "hidden" }}>
+          <div className="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Order No.</th>
+                  <th>Customer</th>
+                  <th>Cloth Type</th>
+                  <th>Status</th>
+                  <th>Delivery Date</th>
+                  <th>Price</th>
+                  <th>Invoice</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {orders.map((order) => (
+                  <tr key={order._id}>
+                    <td>
+                      <span style={{ fontWeight: 700, color: "var(--primary)" }}>{order.orderNumber}</span>
+                      <div style={{ fontSize: 11, color: "var(--text-gray)" }}>{new Date(order.createdAt).toLocaleDateString("en-IN")}</div>
+                    </td>
+                    <td>
+                      <div style={{ fontWeight: 500 }}>{order.userId?.name || "—"}</div>
+                      <div style={{ fontSize: 12, color: "var(--text-gray)" }}>{order.userId?.phone}</div>
+                    </td>
+                    <td>
+                      {order.clothType}
+                      {order.customClothType && <div style={{ fontSize: 11, color: "var(--text-gray)" }}>{order.customClothType}</div>}
+                    </td>
+                    <td><span className={`badge ${STATUS_COLORS[order.status]}`}>{order.status}</span></td>
+                    <td style={{ color: "var(--text-gray)", fontSize: 13 }}>
+                      {order.deliveryDate ? new Date(order.deliveryDate).toLocaleDateString("en-IN") : "—"}
+                    </td>
+                    <td style={{ fontWeight: 600 }}>{order.price ? `₹${order.price}` : "—"}</td>
+                    <td>
+                      {order.invoiceGenerated
+                        ? <span className="badge badge-delivered"><i className="fa-solid fa-check" /> Done</span>
+                        : <span className="badge badge-pending">Pending</span>}
+                    </td>
+                    <td>
+                      <div style={{ display: "flex", gap: 6 }}>
+                        <Link to={`/admin/orders/${order._id}`} className="btn btn-outline btn-sm">
+                          <i className="fa-solid fa-gear" /> Manage
+                        </Link>
+                        <button className="btn btn-danger btn-sm" onClick={() => setDeleteConfirm(order)} title="Delete order">
+                          <i className="fa-solid fa-trash" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
