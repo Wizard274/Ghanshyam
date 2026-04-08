@@ -1,5 +1,7 @@
 const Order = require("../models/orderModel");
 const Invoice = require("../models/invoiceModel");
+const AppointmentSlot = require("../models/appointmentSlotModel");
+const Appointment = require("../models/appointmentModel");
 const multer = require("multer");
 const path = require("path");
 const fs = require("fs");
@@ -28,23 +30,46 @@ const upload = multer({
 // Create order
 const createOrder = async (req, res) => {
   try {
-    const { clothType, customClothType, fabricType, color, specialInstructions, deliveryDate, measurement, price, notes } = req.body;
+    const { clothType, customClothType, fabricType, color, specialInstructions, deliveryDate, measurement, price, notes, measurementType, slotId } = req.body;
     const designImage = req.file ? req.file.filename : null;
     if (!clothType) return res.status(400).json({ success: false, message: "Cloth type is required" });
 
+    let slot;
+    if (measurementType === "tailor") {
+        if (!slotId) return res.status(400).json({ success: false, message: "Appointment slot is required for tailor measurement" });
+        slot = await AppointmentSlot.findById(slotId);
+        if (!slot || !slot.isActive || slot.booked >= slot.capacity) {
+            return res.status(400).json({ success: false, message: "Selected slot is no longer available" });
+        }
+    }
+
     const order = await Order.create({
-      userId: req.user._id,
-      clothType,
-      customClothType: customClothType || "",
-      fabricType: fabricType || "",
-      color: color || "",
-      specialInstructions: specialInstructions || "",
-      deliveryDate: deliveryDate || null,
-      measurement: measurement ? JSON.parse(measurement) : {},
-      designImage,
-      price: parseFloat(price) || 0,
-      notes: notes || "",
+        userId: req.user._id,
+        clothType,
+        customClothType: customClothType || "",
+        fabricType: fabricType || "",
+        color: color || "",
+        specialInstructions: specialInstructions || "",
+        deliveryDate: deliveryDate || null,
+        measurementType: measurementType || "self",
+        measurement: measurementType === "tailor" ? {} : (measurement ? JSON.parse(measurement) : {}),
+        status: measurementType === "tailor" ? "Measurement Scheduled" : "Pending",
+        designImage,
+        price: parseFloat(price) || 0,
+        notes: notes || "",
     });
+
+    if (measurementType === "tailor" && slot) {
+        slot.booked += 1;
+        await slot.save();
+        await Appointment.create({
+            userId: req.user._id,
+            orderId: order._id,
+            slotId: slot._id,
+            date: slot.date,
+            time: `${slot.startTime} - ${slot.endTime}`
+        });
+    }
 
     res.status(201).json({ success: true, message: "Order placed successfully", order });
   } catch (err) {
@@ -143,11 +168,21 @@ const updateMeasurement = async (req, res) => {
     if (req.user.role !== "admin") {
       if (order.userId.toString() !== req.user._id.toString())
         return res.status(403).json({ success: false, message: "Access denied" });
-      if (order.status !== "Pending")
-        return res.status(400).json({ success: false, message: "Cannot edit measurement after Pending stage" });
+      if (order.status !== "Pending" && order.status !== "Measurement Scheduled")
+        return res.status(400).json({ success: false, message: "Cannot edit measurement after initial stage" });
     }
 
     order.measurement = req.body.measurement || order.measurement;
+
+    // Transition to Pending if admin is adding measurements to a scheduled order
+    if (req.user.role === "admin" && order.status === "Measurement Scheduled") {
+        order.status = "Pending";
+        await Appointment.findOneAndUpdate(
+            { orderId: order._id, status: "scheduled" },
+            { status: "completed" }
+        );
+    }
+
     await order.save();
     res.json({ success: true, message: "Measurement updated", order });
   } catch (err) {

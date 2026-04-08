@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { orderAPI } from "../services/api";
 import "../styles/dashboard.css";
 
-const STATUS_COLORS = { Pending: "badge-pending", Cutting: "badge-cutting", Stitching: "badge-stitching", Ready: "badge-ready", Delivered: "badge-delivered" };
+const STATUS_COLORS = { "Measurement Scheduled": "badge-pending", Pending: "badge-pending", Cutting: "badge-cutting", Stitching: "badge-stitching", Ready: "badge-ready", Delivered: "badge-delivered" };
 
 export default function MyOrders() {
   const [orders, setOrders] = useState([]);
@@ -56,7 +56,7 @@ export default function MyOrders() {
         </div>
         <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
           <option value="All">All Status</option>
-          {["Pending", "Cutting", "Stitching", "Ready", "Delivered"].map((s) => (
+          {["Measurement Scheduled", "Pending", "Cutting", "Stitching", "Ready", "Delivered"].map((s) => (
             <option key={s} value={s}>{s}</option>
           ))}
         </select>

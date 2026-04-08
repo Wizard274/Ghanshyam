@@ -66,4 +66,12 @@ export const contactAPI = {
   markRead: (id) => API.put(`/contact/${id}/read`),
 };
 
+export const appointmentAPI = {
+  getAvailableSlots: (date) => API.get(`/appointments/available-slots${date ? `?date=${date}` : ""}`),
+  generateSlots: (data) => API.post("/appointments/generate-slots", data),
+  getAdminSlots: (date) => API.get(`/appointments/admin-slots${date ? `?date=${date}` : ""}`),
+  deleteSlot: (id) => API.delete(`/appointments/slots/${id}`),
+  getAll: () => API.get("/appointments/all"),
+};
+
 export default API;

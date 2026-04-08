@@ -4,8 +4,11 @@ import { orderAPI, invoiceAPI } from "../services/api";
 import "../styles/dashboard.css";
 import "../styles/form.css";
 
-const STATUS_STEPS = ["Pending", "Cutting", "Stitching", "Ready", "Delivered"];
-const STEP_ICONS = ["fa-clock", "fa-cut", "fa-spool", "fa-check-circle", "fa-truck"];
+const DEFAULT_STATUS_STEPS = ["Pending", "Cutting", "Stitching", "Ready", "Delivered"];
+const DEFAULT_STEP_ICONS = ["fa-clock", "fa-cut", "fa-spool", "fa-check-circle", "fa-truck"];
+
+const TAILOR_STATUS_STEPS = ["Measurement Scheduled", "Pending", "Cutting", "Stitching", "Ready", "Delivered"];
+const TAILOR_STEP_ICONS = ["fa-calendar-check", "fa-clock", "fa-cut", "fa-spool", "fa-check-circle", "fa-truck"];
 
 const MEASUREMENT_FIELDS = [
   { key: "lambai", label: "Lambai (Length)" }, { key: "shoulder", label: "Shoulder" },
@@ -124,7 +127,9 @@ export default function AdminOrderDetails() {
   );
   if (!order) return null;
 
-  const currentStep = STATUS_STEPS.indexOf(order.status);
+  const statusSteps = order.measurementType === "tailor" ? TAILOR_STATUS_STEPS : DEFAULT_STATUS_STEPS;
+  const stepIcons = order.measurementType === "tailor" ? TAILOR_STEP_ICONS : DEFAULT_STEP_ICONS;
+  const currentStep = statusSteps.indexOf(order.status);
   const customer = order.userId;
 
   return (
@@ -146,10 +151,10 @@ export default function AdminOrderDetails() {
       <div className="card" style={{ marginBottom: 20 }}>
         <div className="section-title">Order Progress</div>
         <div className="order-tracker">
-          {STATUS_STEPS.map((step, i) => (
+          {statusSteps.map((step, i) => (
             <div key={step} className={`tracker-step ${i < currentStep ? "done" : i === currentStep ? "active" : ""}`}>
               <div className="tracker-dot">
-                <i className={`fa-solid ${i < currentStep ? "fa-check" : STEP_ICONS[i]}`} />
+                <i className={`fa-solid ${i < currentStep ? "fa-check" : stepIcons[i]}`} />
               </div>
               <div className="tracker-label">{step}</div>
             </div>
@@ -210,7 +215,7 @@ export default function AdminOrderDetails() {
           <div className="form-group" style={{ margin: 0 }}>
             <label style={{ fontSize: 13 }}>Status</label>
             <select className="form-control" value={newStatus} onChange={(e) => setNewStatus(e.target.value)}>
-              {STATUS_STEPS.map((s) => <option key={s} value={s}>{s}</option>)}
+              {statusSteps.map((s) => <option key={s} value={s}>{s}</option>)}
             </select>
           </div>
           <div className="form-group" style={{ margin: 0 }}>

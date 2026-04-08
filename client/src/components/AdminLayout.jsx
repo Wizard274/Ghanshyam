@@ -6,6 +6,7 @@ const adminNavItems = [
   { to: "/admin", icon: "fa-gauge", label: "Dashboard", end: true },
   { to: "/admin/customers", icon: "fa-users", label: "Customers" },
   { to: "/admin/orders", icon: "fa-list-check", label: "Orders" },
+  { to: "/admin/appointments", icon: "fa-calendar-check", label: "Appointments" },
   { to: "/admin/invoices", icon: "fa-file-invoice-dollar", label: "Invoices" },
   { to: "/admin/messages", icon: "fa-envelope", label: "Messages" },
 ];

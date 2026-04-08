@@ -26,6 +26,7 @@ import AdminOrders from "./admin/AdminOrders";
 import AdminOrderDetails from "./admin/AdminOrderDetails";
 import AdminInvoices from "./admin/AdminInvoices";
 import AdminInvoiceDetails from "./admin/AdminInvoiceDetails";
+import AdminAppointments from "./admin/AdminAppointments";
 import AdminMeasurements from "./admin/AdminMeasurements";
 import AdminMessages from "./admin/AdminMessages";
 import AdminCreateOrder from "./admin/AdminCreateOrder";
@@ -79,6 +80,7 @@ export default function App() {
         <Route path="/admin/orders/create" element={<ProtectedRoute role="admin"><AdminLayout><AdminCreateOrder /></AdminLayout></ProtectedRoute>} />
         <Route path="/admin/invoices" element={<ProtectedRoute role="admin"><AdminLayout><AdminInvoices /></AdminLayout></ProtectedRoute>} />
         <Route path="/admin/invoices/:id" element={<ProtectedRoute role="admin"><AdminLayout><AdminInvoiceDetails /></AdminLayout></ProtectedRoute>} />
+        <Route path="/admin/appointments" element={<ProtectedRoute role="admin"><AdminLayout><AdminAppointments /></AdminLayout></ProtectedRoute>} />
         <Route path="/admin/measurements" element={<ProtectedRoute role="admin"><AdminLayout><AdminMeasurements /></AdminLayout></ProtectedRoute>} />
         <Route path="/admin/messages" element={<ProtectedRoute role="admin"><AdminLayout><AdminMessages /></AdminLayout></ProtectedRoute>} />
 

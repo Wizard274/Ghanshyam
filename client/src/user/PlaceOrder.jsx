@@ -1,6 +1,6 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { orderAPI } from "../services/api";
+import { orderAPI, appointmentAPI } from "../services/api";
 import "../styles/form.css";
 import "../styles/dashboard.css";
 
@@ -32,6 +32,11 @@ export default function PlaceOrder() {
   });
   const [measurement, setMeasurement] = useState({});
   const [showMeasurement, setShowMeasurement] = useState(false);
+  const [measurementType, setMeasurementType] = useState("self");
+  const [appointmentDate, setAppointmentDate] = useState("");
+  const [slots, setSlots] = useState([]);
+  const [selectedSlot, setSelectedSlot] = useState("");
+  const [fetchingSlots, setFetchingSlots] = useState(false);
   const [designImage, setDesignImage] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -40,14 +45,38 @@ export default function PlaceOrder() {
   const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
   const handleMeasure = (e) => setMeasurement({ ...measurement, [e.target.name]: e.target.value });
 
+  useEffect(() => {
+    if (measurementType === "tailor" && appointmentDate) {
+      setFetchingSlots(true);
+      appointmentAPI.getAvailableSlots(appointmentDate)
+        .then(res => {
+          setSlots(res.data.slots);
+          setSelectedSlot("");
+        })
+        .catch(() => setError("Failed to load appointment slots"))
+        .finally(() => setFetchingSlots(false));
+    }
+  }, [measurementType, appointmentDate]);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!form.clothType) return setError("Please select a cloth type");
     setError(""); setLoading(true);
     try {
+      if (measurementType === "tailor" && !selectedSlot) {
+        throw new Error("Please select an appointment slot for tailor measurement");
+      }
+      
       const formData = new FormData();
       Object.entries(form).forEach(([k, v]) => v && formData.append(k, v));
-      if (showMeasurement) formData.append("measurement", JSON.stringify(measurement));
+      formData.append("measurementType", measurementType);
+      
+      if (measurementType === "self" && showMeasurement) {
+        formData.append("measurement", JSON.stringify(measurement));
+      } else if (measurementType === "tailor") {
+        formData.append("slotId", selectedSlot);
+      }
+      
       if (designImage) formData.append("designImage", designImage);
       const res = await orderAPI.create(formData);
       if (res.data.success) {
@@ -159,49 +188,84 @@ export default function PlaceOrder() {
           <div className="card">
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
               <div className="form-section-title" style={{ margin: 0 }}>
-                <i className="fa-solid fa-ruler" style={{ marginRight: 8 }} />Measurements
+                <i className="fa-solid fa-ruler" style={{ marginRight: 8 }} />Measurement Option
               </div>
-              <button
-                type="button"
-                className={`btn btn-sm ${showMeasurement ? "btn-primary" : "btn-outline"}`}
-                onClick={() => setShowMeasurement(!showMeasurement)}
-              >
-                {showMeasurement ? <><i className="fa-solid fa-minus" /> Hide</> : <><i className="fa-solid fa-plus" /> Add Measurements</>}
-              </button>
             </div>
 
-            {!showMeasurement ? (
-              <div style={{ textAlign: "center", padding: "40px 20px", color: "var(--text-gray)" }}>
-                <i className="fa-solid fa-ruler" style={{ fontSize: 36, color: "var(--primary-border)", marginBottom: 12, display: "block" }} />
-                <p style={{ marginBottom: 8 }}>Add measurements for this order</p>
-                <small>Click "Add Measurements" to enter your body measurements</small>
-                <br /><br />
-                <div className="alert alert-info" style={{ textAlign: "left", fontSize: 12 }}>
-                  <i className="fa-solid fa-info-circle" style={{ marginRight: 6 }} />
-                  Tip: If you've ordered the same cloth type before, the tailor may already have your measurements.
+            <div style={{ display: "flex", gap: 16, marginBottom: 20 }}>
+              <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer" }}>
+                <input type="radio" name="measType" checked={measurementType === "self"} onChange={() => setMeasurementType("self")} />
+                Self Measurement
+              </label>
+              <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer" }}>
+                <input type="radio" name="measType" checked={measurementType === "tailor"} onChange={() => setMeasurementType("tailor")} />
+                Book Tailor Appointment
+              </label>
+            </div>
+
+            {measurementType === "tailor" && (
+              <div style={{ padding: "20px", background: "var(--bg-light)", borderRadius: 12 }}>
+                <h4 style={{ margin: "0 0 16px 0", fontSize: 16 }}>Schedule Appointment</h4>
+                <div className="form-group">
+                  <label>Select Date</label>
+                  <input className="form-control" type="date" min={new Date().toISOString().split("T")[0]} value={appointmentDate} onChange={e => setAppointmentDate(e.target.value)} />
                 </div>
+                {appointmentDate && (
+                  <div className="form-group">
+                    <label>Select Time Slot</label>
+                    {fetchingSlots ? (
+                      <div><i className="fa-solid fa-spinner fa-spin" /> Loading slots...</div>
+                    ) : slots.length === 0 ? (
+                      <div className="alert alert-info">No available slots on this date. Please pick another.</div>
+                    ) : (
+                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                        {slots.map(slot => (
+                          <div 
+                            key={slot._id}
+                            onClick={() => setSelectedSlot(slot._id)}
+                            style={{
+                              padding: "10px", textAlign: "center", borderRadius: 8, cursor: "pointer", border: "1px solid",
+                              borderColor: selectedSlot === slot._id ? "var(--primary)" : "var(--border)",
+                              background: selectedSlot === slot._id ? "var(--primary-pale)" : "#fff",
+                              fontWeight: selectedSlot === slot._id ? "bold" : "normal"
+                            }}
+                          >
+                            {slot.startTime} - {slot.endTime}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
-            ) : (
+            )}
+
+            {measurementType === "self" && (
               <>
-                <p style={{ fontSize: 13, color: "var(--text-gray)", marginBottom: 16 }}>
-                  Enter measurements in inches. Leave blank if unknown.
-                </p>
-                <div className="measurement-grid">
-                  {MEASUREMENT_FIELDS.map((f) => (
-                    <div className="form-group" key={f.key}>
-                      <label style={{ fontSize: 12 }}>{f.label}</label>
-                      <input
-                        className="form-control"
-                        name={f.key}
-                        type="number"
-                        step="0.5"
-                        placeholder="inches"
-                        value={measurement[f.key] || ""}
-                        onChange={handleMeasure}
-                      />
-                    </div>
-                  ))}
+                <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 12 }}>
+                  <button type="button" className={`btn btn-sm ${showMeasurement ? "btn-primary" : "btn-outline"}`} onClick={() => setShowMeasurement(!showMeasurement)}>
+                    {showMeasurement ? <><i className="fa-solid fa-minus" /> Hide</> : <><i className="fa-solid fa-plus" /> Add Measurements Now</>}
+                  </button>
                 </div>
+                {!showMeasurement ? (
+                  <div style={{ textAlign: "center", padding: "20px", color: "var(--text-gray)" }}>
+                    <i className="fa-solid fa-ruler" style={{ fontSize: 36, color: "var(--primary-border)", marginBottom: 12, display: "block" }} />
+                    <p style={{ marginBottom: 8 }}>Provide your own measurements</p>
+                    <small>Click to enter, or leave blank if we already have them.</small>
+                  </div>
+                ) : (
+                  <>
+                    <p style={{ fontSize: 13, color: "var(--text-gray)", marginBottom: 16 }}>Enter in inches. Leave blank if unknown.</p>
+                    <div className="measurement-grid">
+                      {MEASUREMENT_FIELDS.map((f) => (
+                        <div className="form-group" key={f.key}>
+                          <label style={{ fontSize: 12 }}>{f.label}</label>
+                          <input className="form-control" name={f.key} type="number" step="0.5" placeholder="inches" value={measurement[f.key] || ""} onChange={handleMeasure} />
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                )}
               </>
             )}
           </div>

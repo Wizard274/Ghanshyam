@@ -4,8 +4,11 @@ import { orderAPI } from "../services/api";
 import "../styles/dashboard.css";
 import "../styles/form.css";
 
-const STATUS_STEPS = ["Pending", "Cutting", "Stitching", "Ready", "Delivered"];
-const STEP_ICONS = ["fa-clock", "fa-cut", "fa-spool", "fa-check-circle", "fa-truck"];
+const DEFAULT_STATUS_STEPS = ["Pending", "Cutting", "Stitching", "Ready", "Delivered"];
+const DEFAULT_STEP_ICONS = ["fa-clock", "fa-cut", "fa-spool", "fa-check-circle", "fa-truck"];
+
+const TAILOR_STATUS_STEPS = ["Measurement Scheduled", "Pending", "Cutting", "Stitching", "Ready", "Delivered"];
+const TAILOR_STEP_ICONS = ["fa-calendar-check", "fa-clock", "fa-cut", "fa-spool", "fa-check-circle", "fa-truck"];
 
 const MEASUREMENT_FIELDS = [
   { key: "lambai", label: "Lambai" }, { key: "shoulder", label: "Shoulder" },
@@ -35,7 +38,9 @@ export default function OrderDetails() {
     }).catch(() => navigate("/my-orders")).finally(() => setLoading(false));
   }, [id]);
 
-  const currentStep = STATUS_STEPS.indexOf(order?.status);
+  const statusSteps = order?.measurementType === "tailor" ? TAILOR_STATUS_STEPS : DEFAULT_STATUS_STEPS;
+  const stepIcons = order?.measurementType === "tailor" ? TAILOR_STEP_ICONS : DEFAULT_STEP_ICONS;
+  const currentStep = statusSteps.indexOf(order?.status);
 
   const handleSaveMeasurement = async () => {
     setSaving(true);
@@ -75,14 +80,13 @@ export default function OrderDetails() {
 
       {msg && <div className={`alert ${msg.includes("success") ? "alert-success" : "alert-error"}`}>{msg}</div>}
 
-      {/* Order Tracker */}
       <div className="card" style={{ marginBottom: 20 }}>
         <div className="section-title">Order Progress</div>
         <div className="order-tracker">
-          {STATUS_STEPS.map((step, i) => (
+          {statusSteps.map((step, i) => (
             <div key={step} className={`tracker-step ${i < currentStep ? "done" : i === currentStep ? "active" : ""}`}>
               <div className="tracker-dot">
-                <i className={`fa-solid ${i < currentStep ? "fa-check" : STEP_ICONS[i]}`} />
+                <i className={`fa-solid ${i < currentStep ? "fa-check" : stepIcons[i]}`} />
               </div>
               <div className="tracker-label">{step}</div>
             </div>
@@ -127,7 +131,7 @@ export default function OrderDetails() {
         <div className="card">
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
             <div className="section-title" style={{ margin: 0 }}>Measurements</div>
-            {order.status === "Pending" && (
+            {order.status === "Pending" && order.measurementType === "self" && (
               <button
                 className={`btn btn-sm ${editMeasure ? "btn-primary" : "btn-outline"}`}
                 onClick={() => setEditMeasure(!editMeasure)}
@@ -136,10 +140,15 @@ export default function OrderDetails() {
                 {editMeasure ? " Cancel" : " Edit"}
               </button>
             )}
-            {order.status !== "Pending" && (
+            {order.status !== "Pending" && order.measurementType === "self" && (
               <span className="badge badge-delivered" style={{ fontSize: 11 }}>
                 <i className="fa-solid fa-lock" style={{ marginRight: 4 }} /> Locked
               </span>
+            )}
+            {order.measurementType === "tailor" && (
+               <span className="badge badge-pending" style={{ fontSize: 11 }}>
+                 <i className="fa-solid fa-calendar-check" style={{ marginRight: 4 }} /> Tailor Appointment
+               </span>
             )}
           </div>
 
@@ -168,7 +177,11 @@ export default function OrderDetails() {
             </>
           ) : (
             <div className="measurement-grid">
-              {MEASUREMENT_FIELDS.map((f) => (
+              {order.measurementType === "tailor" && (!order.measurement || Object.keys(order.measurement).length === 0) ? (
+                 <div style={{ gridColumn: '1 / -1', padding: '20px', textAlign: 'center', color: 'var(--text-gray)' }}>
+                    Measurements will be added by tailor after your appointment.
+                 </div>
+              ) : MEASUREMENT_FIELDS.map((f) => (
                 <div key={f.key} style={{ background: "var(--primary-pale)", borderRadius: 8, padding: "8px 10px" }}>
                   <div style={{ fontSize: 10, color: "var(--text-gray)", textTransform: "uppercase", letterSpacing: "0.04em" }}>{f.label}</div>
                   <div style={{ fontSize: 15, fontWeight: 600, color: order.measurement?.[f.key] ? "var(--primary)" : "var(--text-light)" }}>

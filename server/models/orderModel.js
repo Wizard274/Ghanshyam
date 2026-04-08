@@ -30,9 +30,10 @@ const orderSchema = new mongoose.Schema(
     specialInstructions: { type: String },
     deliveryDate: { type: Date },
     designImage: { type: String },
+    measurementType: { type: String, enum: ["self", "tailor"], default: "self" },
     status: {
       type: String,
-      enum: ["Pending", "Cutting", "Stitching", "Ready", "Delivered"],
+      enum: ["Measurement Scheduled", "Pending", "Cutting", "Stitching", "Ready", "Delivered"],
       default: "Pending",
     },
     invoiceGenerated: { type: Boolean, default: false },
