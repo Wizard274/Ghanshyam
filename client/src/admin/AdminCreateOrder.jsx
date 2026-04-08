@@ -5,9 +5,27 @@ import "../styles/form.css";
 import "../styles/dashboard.css";
 
 const CLOTH_TYPES = [
-  "Blouse", "Fancy Dress", "Chaniya", "Gown Dress",
-  "Shirt", "Pant", "Salwar", "Chudidar", "Lengho", "Patiyala", "Other",
+  "Afghani suit", "Blouse", "Chaniya", "Chaniya Choli",
+  "Chudidar", "Fancy Dress", "Fancy T-shirt", "Gown Dress",
+  "Lengho", "Pant", "Patiyala", "Salwar", "Shirt", "Other",
 ];
+
+const ESTIMATED_PRICES = {
+  "Afghani suit": "1200 - 1300",
+  "Blouse": "500 - 3000",
+  "Chaniya": "1000 - 2000",
+  "Chaniya Choli": "2000 - 6000",
+  "Chudidar": "150 - 200",
+  "Fancy Dress": "700 - 5000",
+  "Fancy T-shirt": "400 - 500",
+  "Gown Dress": "1200 - 3500",
+  "Lengho": "150 - 200",
+  "Pant": "400 - 600",
+  "Patiyala": "200 - 300",
+  "Salwar": "150 - 200",
+  "Shirt": "300 - 400",
+  "Other": "According to design"
+};
 
 const MEASUREMENT_FIELDS = [
   { key: "lambai", label: "Lambai (Length)" }, { key: "shoulder", label: "Shoulder" },
@@ -159,17 +177,26 @@ export default function AdminCreateOrder() {
 
               <div className="form-row">
                 <div className="form-group">
-                  <label>Delivery Date</label>
+                  <label>Delivery Date <span className="required">*</span></label>
                   <input className="form-control" type="date" name="deliveryDate"
-                    value={form.deliveryDate} onChange={handleChange} />
+                    value={form.deliveryDate} onChange={handleChange} required />
                 </div>
                 <div className="form-group">
-                  <label>Price (₹)</label>
+                  <label>Estimated Price (₹)</label>
                   <div className="input-icon-wrap">
                     <i className="input-icon fa-solid fa-indian-rupee-sign" />
-                    <input className="form-control" type="number" name="price"
-                      placeholder="0.00" value={form.price} onChange={handleChange} />
+                    <input 
+                      className="form-control" 
+                      type="text" 
+                      value={form.clothType && ESTIMATED_PRICES[form.clothType] ? ESTIMATED_PRICES[form.clothType] : ""} 
+                      readOnly 
+                      placeholder="Select cloth type first" 
+                      style={{ backgroundColor: "var(--bg-light)", cursor: "not-allowed", color: "var(--text-gray)" }}
+                    />
                   </div>
+                  <small style={{ color: "var(--primary)", fontSize: 11, marginTop: 4, display: "block", fontStyle: "italic" }}>
+                    *Price increases according to design
+                  </small>
                 </div>
               </div>
 
