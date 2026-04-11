@@ -43,7 +43,7 @@ export default function Contact() {
           {[
             { icon: "fa-phone", title: "Phone", value: "+91 8160942724", sub: "Mon–Sat, 9AM–8PM" },
             { icon: "fa-location-dot", title: "Address", value: "Shop no:-21, Gigev Park, Opposite Uttamnagar, Ratanpark Road.", sub: " Bapunagar, Ahmedabad." },
-            { icon: "fa-envelope", title: "Email", value: "ghanshyamtailor@gmail.com", sub: "We reply within 24 hours" },
+            { icon: "fa-envelope", title: "Email", value: "ghanshyamladiestailor21@gmail.com", sub: "We reply within 24 hours" },
             { icon: "fa-clock", title: "Working Hours", value: "Monday to Saturday", sub: "9:00 AM – 8:00 PM" },
           ].map((c) => (
             <div key={c.title} className="card" style={{ display: "flex", alignItems: "center", gap: 14 }}>

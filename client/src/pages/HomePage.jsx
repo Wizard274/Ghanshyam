@@ -62,7 +62,7 @@ export default function HomePage() {
           <div className="deco-circle deco-2" />
           <div className="deco-circle deco-3" />
           <div className="deco-icon-grid">
-            {["fa-scissors","fa-star","fa-heart","fa-crown","fa-wand-sparkles","fa-shirt"].map((ic, i) => (
+            {["fa-scissors", "fa-star", "fa-heart", "fa-crown", "fa-wand-sparkles", "fa-shirt"].map((ic, i) => (
               <div key={i} className="deco-icon"><i className={`fa-solid ${ic}`} /></div>
             ))}
           </div>
@@ -132,7 +132,7 @@ export default function HomePage() {
                 { icon: "fa-phone", title: "Phone", value: "+91 8160942724" },
                 { icon: "fa-location-dot", title: "Address", value: "Shop no:-21, Gigev Park, Opposite Uttamnagar, Ratanpark Road, Bapunagar, Ahmedabad." },
                 { icon: "fa-clock", title: "Hours", value: "Mon–Sat: 9:00 AM – 8:00 PM" },
-                { icon: "fa-envelope", title: "Email", value: "ghanshyamtailor@gmail.com" },
+                { icon: "fa-envelope", title: "Email", value: "ghanshyamladiestailor21@gmail.com" },
               ].map((c, i) => (
                 <div className="contact-card" key={i}>
                   <div className="contact-card-icon"><i className={`fa-solid ${c.icon}`} /></div>
