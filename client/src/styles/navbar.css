@@ -18,6 +18,11 @@
   transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   overflow-y: auto;
   overflow-x: hidden;
+  transform: translateX(-100%);
+}
+
+.sidebar.open {
+  transform: translateX(0);
 }
 
 .sidebar::-webkit-scrollbar { width: 3px; }
@@ -170,6 +175,20 @@
 }
 .logout-btn:hover { background: rgba(255,255,255,0.15); color: #fff; }
 
+.close-btn {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  background: none;
+  border: none;
+  color: rgba(255,255,255,0.7);
+  font-size: 24px;
+  cursor: pointer;
+  z-index: 10;
+  transition: var(--transition);
+}
+.close-btn:hover { color: #fff; }
+
 /* ===== TOP NAVBAR ===== */
 .top-navbar {
   height: var(--navbar-height);
@@ -186,7 +205,8 @@
 }
 
 .hamburger-btn {
-  display: none;
+  display: flex;
+  align-items: center;
   background: none;
   border: none;
   font-size: 20px;
@@ -228,7 +248,7 @@
 
 .main-content {
   flex: 1;
-  margin-left: var(--sidebar-width);
+  margin-left: 0;
   min-height: 100vh;
   display: flex;
   flex-direction: column;
@@ -250,25 +270,13 @@
   z-index: 150;
   backdrop-filter: blur(2px);
 }
+.sidebar-overlay.open {
+  display: block;
+}
 
 /* ===== RESPONSIVE ===== */
 @media (max-width: 1024px) {
-  .sidebar {
-    transform: translateX(-100%);
-  }
-  .sidebar.open {
-    transform: translateX(0);
-  }
-  .sidebar-overlay.open {
-    display: block;
-  }
-  .main-content {
-    margin-left: 0;
-  }
-  .hamburger-btn {
-    display: flex;
-    align-items: center;
-  }
+  /* Sidebar uses standard hidden state now */
 }
 
 @media (max-width: 768px) {
