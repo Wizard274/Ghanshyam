@@ -30,6 +30,7 @@ export default function AdminOrderDetails() {
   const [newStatus, setNewStatus] = useState("");
   const [price, setPrice] = useState("");
   const [notes, setNotes] = useState("");
+  const [deliveryDate, setDeliveryDate] = useState("");
   const [msg, setMsg] = useState({ type: "", text: "" });
 
   // Measurement editing
@@ -52,6 +53,7 @@ export default function AdminOrderDetails() {
       setNewStatus(o.status);
       setPrice(o.price || "");
       setNotes(o.notes || "");
+      setDeliveryDate(o.deliveryDate ? o.deliveryDate.split("T")[0] : "");
       setMeasurement(o.measurement || {});
     }).catch(() => navigate("/admin/orders")).finally(() => setLoading(false));
   }, [id]);
@@ -62,11 +64,21 @@ export default function AdminOrderDetails() {
   };
 
   const handleUpdate = async () => {
+    if (deliveryDate) {
+      const minDate = new Date(order.createdAt);
+      minDate.setDate(minDate.getDate() + 3);
+      minDate.setHours(0, 0, 0, 0);
+      const selDate = new Date(deliveryDate);
+      if (selDate < minDate) {
+        return showMsg("error", "Delivery date must be at least 3 days after order date");
+      }
+    }
+
     setUpdating(true);
     try {
-      const res = await orderAPI.updateStatus(id, { status: newStatus, price: parseFloat(price) || 0, notes });
+      const res = await orderAPI.updateStatus(id, { status: newStatus, price: parseFloat(price) || 0, notes, deliveryDate });
       setOrder(res.data.order);
-      showMsg("success", `Order updated to "${newStatus}" successfully!`);
+      showMsg("success", `Order updated successfully!`);
     } catch (err) {
       showMsg("error", err.response?.data?.message || "Update failed");
     } finally {
@@ -211,7 +223,7 @@ export default function AdminOrderDetails() {
       {/* Update Status Panel */}
       <div className="card" style={{ marginBottom: 20 }}>
         <div className="section-title">Update Order Status</div>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 16, marginBottom: 16 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 16, marginBottom: 16 }}>
           <div className="form-group" style={{ margin: 0 }}>
             <label style={{ fontSize: 13 }}>Status</label>
             <select className="form-control" value={newStatus} onChange={(e) => setNewStatus(e.target.value)}>
@@ -221,6 +233,16 @@ export default function AdminOrderDetails() {
           <div className="form-group" style={{ margin: 0 }}>
             <label style={{ fontSize: 13 }}>Price (₹)</label>
             <input className="form-control" type="number" placeholder="0.00" value={price} onChange={(e) => setPrice(e.target.value)} />
+          </div>
+          <div className="form-group" style={{ margin: 0 }}>
+            <label style={{ fontSize: 13 }}>Delivery Date</label>
+            <input 
+              className="form-control" 
+              type="date" 
+              min={order ? new Date(new Date(order.createdAt).getTime() + 3 * 24 * 60 * 60 * 1000).toISOString().split("T")[0] : ""} 
+              value={deliveryDate} 
+              onChange={(e) => setDeliveryDate(e.target.value)} 
+            />
           </div>
           <div className="form-group" style={{ margin: 0 }}>
             <label style={{ fontSize: 13 }}>Admin Notes</label>

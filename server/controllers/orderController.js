@@ -2,6 +2,9 @@ const Order = require("../models/orderModel");
 const Invoice = require("../models/invoiceModel");
 const AppointmentSlot = require("../models/appointmentSlotModel");
 const Appointment = require("../models/appointmentModel");
+const User = require("../models/userModel");
+const { sendDeliveryScheduledEmail, sendOrderCompletedEmail } = require("../utils/emailUtils");
+const { generateInvoicePDF } = require("../utils/generateInvoice");
 const multer = require("multer");
 const path = require("path");
 const fs = require("fs");
@@ -70,7 +73,6 @@ const createOrder = async (req, res) => {
             time: `${slot.startTime} - ${slot.endTime}`
         });
     }
-
     res.status(201).json({ success: true, message: "Order placed successfully", order });
   } catch (err) {
     console.error("createOrder error:", err);
@@ -129,7 +131,7 @@ const getAllOrders = async (req, res) => {
 
 const updateOrderStatus = async (req, res) => {
   try {
-    const { status, price, notes } = req.body;
+    const { status, price, notes, deliveryDate } = req.body;
     const order = await Order.findById(req.params.id);
     if (!order) return res.status(404).json({ success: false, message: "Order not found" });
 
@@ -137,11 +139,31 @@ const updateOrderStatus = async (req, res) => {
     if (status) order.status = status;
     if (price !== undefined) order.price = parseFloat(price) || 0;
     if (notes !== undefined) order.notes = notes;
+    
+    let isDeliveryDateUpdated = false;
+    if (deliveryDate !== undefined) {
+      if (deliveryDate) {
+        const minDate = new Date(order.createdAt);
+        minDate.setDate(minDate.getDate() + 3);
+        minDate.setHours(0, 0, 0, 0);
+        const selDate = new Date(deliveryDate);
+        if (selDate < minDate) {
+          return res.status(400).json({ success: false, message: "Delivery date must be at least 3 days after order date" });
+        }
+      }
+      
+      order.deliveryDate = deliveryDate ? new Date(deliveryDate) : null;
+      if (order.deliveryDate && !order.confirmationEmailSent) {
+        isDeliveryDateUpdated = true;
+      }
+    }
+    
     await order.save();
 
+    let invoice = null;
     if (status === "Delivered" && prevStatus !== "Delivered" && !order.invoiceGenerated) {
       const itemPrice = order.price || 500;
-      await Invoice.create({
+      invoice = await Invoice.create({
         orderId: order._id,
         customerId: order.userId,
         items: [{ name: `${order.clothType} Stitching`, description: order.fabricType || "", quantity: 1, price: itemPrice }],
@@ -150,6 +172,38 @@ const updateOrderStatus = async (req, res) => {
       });
       order.invoiceGenerated = true;
       await order.save();
+    } else if (order.invoiceGenerated) {
+      invoice = await Invoice.findOne({ orderId: order._id });
+    }
+
+    if (status === "Delivered" && prevStatus !== "Delivered" && invoice) {
+      try {
+        const customer = await User.findById(order.userId);
+        if (customer) {
+          const pdfBuffer = await generateInvoicePDF(invoice, order, customer);
+          await sendOrderCompletedEmail(order, customer, pdfBuffer, invoice.invoiceNumber);
+        }
+      } catch (emailErr) {
+        console.error("Failed to send completion email:", emailErr);
+      }
+    }
+
+    if (isDeliveryDateUpdated) {
+      try {
+        const customer = await User.findById(order.userId);
+        if (customer) {
+          // Attempt to get invoice if generated, else use fallbacks
+          if (!invoice && order.invoiceGenerated) invoice = await Invoice.findOne({ orderId: order._id });
+          const invoiceNum = invoice ? invoice.invoiceNumber : "N/A";
+          const paymentStatus = invoice ? invoice.paymentStatus : "Pending";
+          
+          await sendDeliveryScheduledEmail(order, customer, invoiceNum, paymentStatus);
+          order.confirmationEmailSent = true;
+          await order.save();
+        }
+      } catch (emailErr) {
+        console.error("Failed to send delivery scheduled email:", emailErr);
+      }
     }
 
     res.json({ success: true, message: "Order updated", order });
@@ -195,6 +249,15 @@ const adminCreateOrder = async (req, res) => {
     const { userId, clothType, customClothType, fabricType, color, specialInstructions, deliveryDate, measurement, price, notes } = req.body;
     if (!userId) return res.status(400).json({ success: false, message: "Customer is required" });
     if (!clothType) return res.status(400).json({ success: false, message: "Cloth type is required" });
+    if (!deliveryDate) return res.status(400).json({ success: false, message: "Delivery date is required" });
+
+    const minDate = new Date();
+    minDate.setDate(minDate.getDate() + 3);
+    minDate.setHours(0, 0, 0, 0);
+    const selDate = new Date(deliveryDate);
+    if (selDate < minDate) {
+      return res.status(400).json({ success: false, message: "Delivery date must be at least 3 days after order date" });
+    }
 
     const order = await Order.create({
       userId, clothType,
@@ -202,11 +265,23 @@ const adminCreateOrder = async (req, res) => {
       fabricType: fabricType || "",
       color: color || "",
       specialInstructions: specialInstructions || "",
-      deliveryDate: deliveryDate || null,
+      deliveryDate: new Date(deliveryDate),
       measurement: measurement || {},
       price: parseFloat(price) || 0,
       notes: notes || "",
     });
+    
+    try {
+        const customer = await User.findById(userId);
+        if (customer) {
+            await sendDeliveryScheduledEmail(order, customer, "N/A", "Pending");
+            order.confirmationEmailSent = true;
+            await order.save();
+        }
+    } catch (emailErr) {
+        console.error("Failed to send walk-in delivery scheduled email:", emailErr);
+    }
+
     res.status(201).json({ success: true, message: "Order created", order });
   } catch (err) {
     res.status(500).json({ success: false, message: "Server error: " + err.message });

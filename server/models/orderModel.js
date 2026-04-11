@@ -37,6 +37,7 @@ const orderSchema = new mongoose.Schema(
       default: "Pending",
     },
     invoiceGenerated: { type: Boolean, default: false },
+    confirmationEmailSent: { type: Boolean, default: false },
     price: { type: Number, default: 0 },
     notes: { type: String },
   },

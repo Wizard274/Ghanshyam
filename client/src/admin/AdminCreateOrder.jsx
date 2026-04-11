@@ -10,6 +10,9 @@ const CLOTH_TYPES = [
   "Lengho", "Pant", "Patiyala", "Salwar", "Shirt", "Other",
 ];
 
+const FABRIC_TYPES = ["Cotton", "Silk", "Linen", "Wool", "Polyester", "Chiffon", "Georgette", "Velvet", "Crepe", "Denim", "Net", "Rayon", "Other"];
+
+
 const ESTIMATED_PRICES = {
   "Afghani suit": "1200 - 1300",
   "Blouse": "500 - 3000",
@@ -76,6 +79,16 @@ export default function AdminCreateOrder() {
     e.preventDefault();
     if (!form.userId) return setError("Please select a customer");
     if (!form.clothType) return setError("Please select a cloth type");
+    if (!form.deliveryDate) return setError("Please select a delivery date");
+
+    const minDate = new Date();
+    minDate.setDate(minDate.getDate() + 3);
+    minDate.setHours(0, 0, 0, 0);
+    const selDate = new Date(form.deliveryDate);
+    if (selDate < minDate) {
+      return setError("Delivery date must be at least 3 days after order date");
+    }
+
     setError(""); setLoading(true);
 
     try {
@@ -165,8 +178,10 @@ export default function AdminCreateOrder() {
               <div className="form-row">
                 <div className="form-group">
                   <label>Fabric Type</label>
-                  <input className="form-control" name="fabricType" placeholder="e.g. Silk, Cotton"
-                    value={form.fabricType} onChange={handleChange} />
+                  <select className="form-control" name="fabricType" value={form.fabricType} onChange={handleChange}>
+                    <option value="">Select fabric type</option>
+                    {FABRIC_TYPES.map(f => <option key={f} value={f}>{f}</option>)}
+                  </select>
                 </div>
                 <div className="form-group">
                   <label>Color</label>
@@ -178,8 +193,11 @@ export default function AdminCreateOrder() {
               <div className="form-row">
                 <div className="form-group">
                   <label>Delivery Date <span className="required">*</span></label>
-                  <input className="form-control" type="date" name="deliveryDate"
+                  <input className="form-control" type="date" name="deliveryDate" min={new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString().split("T")[0]}
                     value={form.deliveryDate} onChange={handleChange} required />
+                  <small style={{ color: "var(--primary)", fontSize: 11, marginTop: 4, display: "block", fontWeight: 500 }}>
+                    Note: Order completion requires a minimum of 3 days.
+                  </small>
                 </div>
                 <div className="form-group">
                   <label>Estimated Price (₹)</label>
@@ -319,6 +337,13 @@ export default function AdminCreateOrder() {
             )}
           </div>
 
+        </div>
+
+        <div style={{ marginTop: 24, padding: "16px", background: "#fcf8f5", borderLeft: "4px solid var(--primary)", borderRadius: "4px" }}>
+          <p style={{ margin: 0, color: "var(--primary)", fontWeight: "500", fontSize: 14 }}>
+            <i className="fa-solid fa-circle-info" style={{ marginRight: 8 }}></i>
+            Note: Order completion requires a minimum of 3 days.
+          </p>
         </div>
 
         <div style={{ display: "flex", justifyContent: "flex-end", gap: 12, marginTop: 20 }}>

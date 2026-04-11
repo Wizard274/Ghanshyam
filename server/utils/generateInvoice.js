@@ -1,147 +1,173 @@
 const PDFDocument = require("pdfkit");
+const fs = require("fs");
 
 const generateInvoicePDF = (invoice, order, customer) => {
   return new Promise((resolve, reject) => {
-    const doc = new PDFDocument({ margin: 50, size: "A4" });
-    const buffers = [];
+    // A4 size is 595.28 x 841.89
+    // Margins: top 30, bottom 30, left/right 25
+    const doc = new PDFDocument({
+      size: "A4",
+      margins: { top: 30, bottom: 30, left: 25, right: 25 },
+      autoFirstPage: true,
+      bufferPages: true,
+    });
+    
+    // Prevent auto page breaks
+    doc.on('pageAdded', () => {
+      // we only want 1 page
+    });
 
+    const buffers = [];
     doc.on("data", (chunk) => buffers.push(chunk));
     doc.on("end", () => resolve(Buffer.concat(buffers)));
     doc.on("error", reject);
+
+    // Try to load Arial for Rupee symbol support, fallback to Helvetica if missing on system
+    let regularFont = "Helvetica";
+    let boldFont = "Helvetica-Bold";
+    let italicFont = "Helvetica-Oblique";
+    
+    if (fs.existsSync("C:/Windows/Fonts/arial.ttf")) {
+        regularFont = "C:/Windows/Fonts/arial.ttf";
+        boldFont = "C:/Windows/Fonts/arialbd.ttf";
+        italicFont = "C:/Windows/Fonts/ariali.ttf";
+    }
 
     const primary = "#8B4513";
     const lightBg = "#FFF5F0";
     const textDark = "#1a1a1a";
     const textGray = "#666666";
 
-    // Header background
-    doc.rect(0, 0, 595, 130).fill(primary);
+    const drawLine = (y) => {
+      doc.moveTo(25, y).lineTo(570, y).lineWidth(1).strokeColor("#E0E0E0").stroke();
+    };
 
-    // Shop name
-    doc.fillColor("#FFFFFF").font("Helvetica-Bold").fontSize(22).text("Ghanshyam Ladies Tailor", 50, 35);
-    doc.fillColor("rgba(255,255,255,0.8)").font("Helvetica").fontSize(11).text("Precision and Perfection in Every Stitch", 50, 62);
-    doc.fillColor("rgba(255,255,255,0.7)").fontSize(10).text("Phone: +91 8160942724  |  Address: Shop no:-21, Gigev Park, Opposite Uttamnagar, Ratanpark Road, Bapunagar, Ahmedabad.", 50, 82);
-    doc.fillColor("rgba(255,255,255,0.7)").fontSize(10).text("Email: ghanshyamladiestailor21@gmail.com", 50, 97);
+    let y = 30;
 
-    // Invoice label
-    doc.fillColor("#FFFFFF").font("Helvetica-Bold").fontSize(26).text("INVOICE", 400, 45, { align: "right", width: 145 });
-    doc.fillColor("rgba(255,255,255,0.85)").font("Helvetica").fontSize(10).text(invoice.invoiceNumber, 400, 80, { align: "right", width: 145 });
+    // --- HEADER SECTION ---
+    doc.fillColor(primary).font(boldFont).fontSize(24).text("Ghanshyam Ladies Tailor", 25, y);
+    doc.fillColor(textGray).font(italicFont).fontSize(11).text("Precision and Perfection in Every Stitch", 25, y + 28);
+    
+    // INVOICE text on right
+    doc.fillColor(primary).font(boldFont).fontSize(28).text("INVOICE", 400, y, { align: "right", width: 170 });
+    doc.fillColor(textDark).font(regularFont).fontSize(11).text(invoice.invoiceNumber, 400, y + 32, { align: "right", width: 170 });
 
-    let y = 150;
+    y += 55;
+    doc.fillColor(textDark).font(regularFont).fontSize(10)
+       .text("Phone: +91 8160942724", 25, y)
+       .text("Email: ghanshyamladiestailor21@gmail.com", 25, y + 14)
+       .text("Address: Shop no: 21, Gigev Park, Opposite Uttamnagar, Ratanpark Road, Bapunagar, Ahmedabad", 25, y + 28, { width: 330 });
 
-    // Invoice details box
-    doc.roundedRect(50, y, 240, 90, 8).fill(lightBg);
-    doc.fillColor(primary).font("Helvetica-Bold").fontSize(10).text("BILL TO", 65, y + 12);
-    doc.fillColor(textDark).font("Helvetica-Bold").fontSize(12).text(customer.name, 65, y + 27);
-    doc.fillColor(textGray).font("Helvetica").fontSize(10)
-      .text(customer.email, 65, y + 43)
-      .text(customer.phone, 65, y + 57)
-      .text(customer.address || "N/A", 65, y + 71);
+    y += 65;
+    drawLine(y);
+    y += 15;
 
-    doc.roundedRect(310, y, 235, 90, 8).fill(lightBg);
-    doc.fillColor(primary).font("Helvetica-Bold").fontSize(10).text("INVOICE DETAILS", 325, y + 12);
-    doc.fillColor(textGray).font("Helvetica").fontSize(10)
-      .text("Invoice No:", 325, y + 27)
-      .text("Order No:", 325, y + 42)
-      .text("Date:", 325, y + 57)
-      .text("Payment:", 325, y + 72);
-    doc.fillColor(textDark).font("Helvetica-Bold").fontSize(10)
-      .text(invoice.invoiceNumber, 415, y + 27)
-      .text(order.orderNumber, 415, y + 42)
-      .text(new Date(invoice.createdAt).toLocaleDateString("en-IN"), 415, y + 57)
-      .text(invoice.paymentStatus, 415, y + 72);
+    // --- CUSTOMER & INVOICE DETAILS SECTION ---
+    // Bill to
+    doc.fillColor(primary).font(boldFont).fontSize(11).text("BILL TO", 25, y);
+    doc.fillColor(textDark).font(boldFont).fontSize(12).text(customer.name, 25, y + 16);
+    doc.fillColor(textGray).font(regularFont).fontSize(10)
+       .text(`Email: ${customer.email}`, 25, y + 32)
+       .text(`Phone: ${customer.phone}`, 25, y + 46)
+       .text(`Address: ${customer.address || "N/A"}`, 25, y + 60, { width: 250 });
 
-    y += 115;
+    // Invoice details right aligned block
+    doc.fillColor(primary).font(boldFont).fontSize(11).text("INVOICE DETAILS", 350, y);
+    doc.fillColor(textGray).font(regularFont).fontSize(10)
+       .text("Invoice No:", 350, y + 16)
+       .text("Order No:", 350, y + 32)
+       .text("Date:", 350, y + 46)
+       .text("Payment Status:", 350, y + 60);
 
-    // Order details
-    doc.roundedRect(50, y, 495, 60, 8).fill(lightBg);
-    doc.fillColor(primary).font("Helvetica-Bold").fontSize(10).text("ORDER DETAILS", 65, y + 10);
-    doc.fillColor(textGray).font("Helvetica").fontSize(10)
-      .text(`Cloth Type: ${order.clothType}`, 65, y + 26)
-      .text(`Fabric: ${order.fabricType || "N/A"}`, 230, y + 26)
-      .text(`Color: ${order.color || "N/A"}`, 400, y + 26)
-      .text(`Delivery Date: ${order.deliveryDate ? new Date(order.deliveryDate).toLocaleDateString("en-IN") : "N/A"}`, 65, y + 42);
+    doc.fillColor(textDark).font(boldFont).fontSize(10)
+       .text(invoice.invoiceNumber, 450, y + 16)
+       .text(order.orderNumber, 450, y + 32)
+       .text(new Date(invoice.createdAt).toLocaleDateString("en-IN"), 450, y + 46)
+       .text(invoice.paymentStatus, 450, y + 60);
 
-    y += 80;
+    y += 85;
+    drawLine(y);
+    y += 15;
 
-    // Items table header
-    doc.rect(50, y, 495, 32).fill(primary);
-    doc.fillColor("#FFFFFF").font("Helvetica-Bold").fontSize(10)
-      .text("DESCRIPTION", 65, y + 11)
-      .text("QTY", 340, y + 11)
-      .text("PRICE", 390, y + 11)
-      .text("AMOUNT", 450, y + 11);
+    // --- ORDER DETAILS SECTION ---
+    doc.fillColor(primary).font(boldFont).fontSize(11).text("ORDER DETAILS", 25, y);
+    y += 18;
+    
+    doc.roundedRect(25, y, 545, 45, 6).fill(lightBg);
+    
+    // 4 columns inside the row
+    doc.fillColor(textGray).font(boldFont).fontSize(10)
+       .text("Cloth Type", 40, y + 10)
+       .text("Fabric", 180, y + 10)
+       .text("Color", 320, y + 10)
+       .text("Delivery Date", 430, y + 10);
+       
+    doc.fillColor(textDark).font(regularFont).fontSize(10)
+       .text(order.clothType, 40, y + 25)
+       .text(order.fabricType || "N/A", 180, y + 25)
+       .text(order.color || "N/A", 320, y + 25)
+       .text(order.deliveryDate ? new Date(order.deliveryDate).toLocaleDateString("en-IN") : "N/A", 430, y + 25);
 
-    y += 32;
+    y += 65;
 
-    // Items
-    let totalCheck = 0;
+    // --- TABLE SECTION ---
+    doc.rect(25, y, 545, 30).fill(primary);
+    doc.fillColor("#FFFFFF").font(boldFont).fontSize(10)
+       .text("DESCRIPTION", 40, y + 10)
+       .text("QTY", 380, y + 10, { width: 40, align: "right" })
+       .text("PRICE", 440, y + 10, { width: 50, align: "right" })
+       .text("AMOUNT", 500, y + 10, { width: 60, align: "right" });
+       
+    y += 30;
+
+    // Table rows
     invoice.items.forEach((item, i) => {
-      const bg = i % 2 === 0 ? "#FFFFFF" : "#FFF9F6";
-      doc.rect(50, y, 495, 28).fill(bg);
-      doc.fillColor(textDark).font("Helvetica").fontSize(10)
-        .text(item.name, 65, y + 9, { width: 270 })
-        .text(item.quantity.toString(), 340, y + 9)
-        .text(`₹${item.price.toFixed(2)}`, 390, y + 9)
-        .text(`₹${(item.price * item.quantity).toFixed(2)}`, 450, y + 9);
-      totalCheck += item.price * item.quantity;
+      const bg = i % 2 === 0 ? "#FFFFFF" : "#F9F9F9";
+      doc.rect(25, y, 545, 28).fill(bg);
+      doc.fillColor(textDark).font(regularFont).fontSize(10)
+         .text(item.name, 40, y + 9, { width: 330 })
+         .text(item.quantity.toString(), 380, y + 9, { width: 40, align: "right" })
+         .text(`₹${item.price.toFixed(2)}`, 440, y + 9, { width: 50, align: "right" })
+         .text(`₹${(item.price * item.quantity).toFixed(2)}`, 500, y + 9, { width: 60, align: "right" });
       y += 28;
     });
 
-    // Bottom border of table
-    doc.rect(50, y, 495, 1).fill("#e0d5cf");
-    y += 20;
+    doc.rect(25, y, 545, 1).fill("#E0E0E0");
+    y += 15;
 
-    // Totals section
-    const totalsX = 360;
-    const totalsW = 185;
+    // --- TOTAL SECTION ---
+    const totalsX = 380;
+    const totalsW = 180;
 
-    const addTotalRow = (label, value, bold = false, color = textDark) => {
-      if (bold) {
-        doc.rect(totalsX - 10, y - 4, totalsW + 10, 26).fill(primary);
-        doc.fillColor("#FFFFFF").font("Helvetica-Bold").fontSize(11)
-          .text(label, totalsX, y + 2)
-          .text(value, totalsX, y + 2, { align: "right", width: totalsW - 10 });
-      } else {
-        doc.fillColor(textGray).font("Helvetica").fontSize(10).text(label, totalsX, y);
-        doc.fillColor(color).font("Helvetica").fontSize(10).text(value, totalsX, y, { align: "right", width: totalsW - 10 });
-      }
-      y += bold ? 30 : 18;
+    const addTotalRow = (label, value, isBold = false) => {
+      doc.fillColor(isBold ? textDark : textGray).font(isBold ? boldFont : regularFont).fontSize(isBold ? 12 : 10)
+         .text(label, totalsX, y, { width: 80, align: "left" })
+         .text(value, totalsX + 80, y, { width: 100, align: "right" });
+      y += isBold ? 24 : 18;
     };
 
     addTotalRow("Subtotal:", `₹${invoice.subtotal.toFixed(2)}`);
-    if (invoice.discount > 0) addTotalRow("Discount:", `-₹${invoice.discount.toFixed(2)}`, false, "#e53935");
-    if (invoice.tax > 0) addTotalRow("Tax (GST):", `₹${invoice.tax.toFixed(2)}`);
-    addTotalRow("TOTAL AMOUNT", `₹${invoice.totalAmount.toFixed(2)}`, true);
+    if (invoice.discount > 0) addTotalRow("Discount:", `-₹${invoice.discount.toFixed(2)}`);
+    if (invoice.tax > 0) addTotalRow("Tax:", `₹${invoice.tax.toFixed(2)}`);
+    
+    y += 4;
+    doc.fillColor(primary).font(boldFont).fontSize(12)
+       .text("TOTAL AMOUNT", totalsX, y, { width: 100, align: "left" })
+       .text(`₹${invoice.totalAmount.toFixed(2)}`, totalsX + 100, y, { width: 80, align: "right" });
 
-    y += 10;
+    // --- FOOTER SECTION ---
+    // Fix positioning at bottom
+    const footerY = 740;
+    
+    // Colored bottom bar
+    doc.rect(25, footerY, 545, 30).fill(primary);
+    doc.fillColor("#FFFFFF").font(boldFont).fontSize(11)
+       .text("Thank you for choosing Ghanshyam Ladies Tailor!", 25, footerY + 9, { align: "center", width: 545 });
 
-    // Payment status badge
-    const statusColor = invoice.paymentStatus === "Paid" ? "#4CAF50" : invoice.paymentStatus === "Partial" ? "#FF9800" : "#F44336";
-    doc.roundedRect(50, y, 160, 30, 6).fill(statusColor);
-    doc.fillColor("#FFFFFF").font("Helvetica-Bold").fontSize(11).text(`Payment: ${invoice.paymentStatus}`, 60, y + 9, { width: 140, align: "center" });
-
-    if (invoice.paymentMethod) {
-      doc.fillColor(textGray).font("Helvetica").fontSize(10).text(`Method: ${invoice.paymentMethod}`, 225, y + 9);
-    }
-
-    y += 50;
-
-    // Notes
-    if (invoice.notes) {
-      doc.fillColor(textGray).font("Helvetica-Oblique").fontSize(9).text(`Note: ${invoice.notes}`, 50, y);
-      y += 20;
-    }
-
-    // Footer
-    const footerY = 770;
-    doc.rect(0, footerY, 595, 72).fill(primary);
-    doc.fillColor("rgba(255,255,255,0.9)").font("Helvetica").fontSize(10)
-      .text("Thank you for choosing ઘનશ્યામ Ladies Tailor!", 0, footerY + 14, { align: "center", width: 595 });
-    doc.fillColor("rgba(255,255,255,0.7)").fontSize(9)
-      .text("Precision and Perfection in Every Stitch", 0, footerY + 32, { align: "center", width: 595 });
-    doc.fillColor("rgba(255,255,255,0.5)").fontSize(8)
-      .text("This is a computer-generated invoice. No signature required.", 0, footerY + 50, { align: "center", width: 595 });
+    // Sub footer
+    doc.fillColor(textGray).font(regularFont).fontSize(9)
+       .text("This invoice is generated after order completion.", 25, footerY + 38, { align: "center", width: 545 })
+       .text("This is a computer-generated invoice. No signature required.", 25, footerY + 50, { align: "center", width: 545 });
 
     doc.end();
   });

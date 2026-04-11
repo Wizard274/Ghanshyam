@@ -27,6 +27,7 @@ export default function AdminLayout({ children }) {
 
       <aside className={`sidebar ${sidebarOpen ? "open" : ""}`}>
         <div className="sidebar-brand">
+          <button className="close-btn" onClick={() => setSidebarOpen(false)}>×</button>
           <div className="brand-name">ઘનશ્યામ Ladies Tailor</div>
           <div className="brand-tagline">Precision and Perfection in Every Stitch</div>
           <div className="brand-badge"><i className="fa fa-crown" /> Admin Panel</div>

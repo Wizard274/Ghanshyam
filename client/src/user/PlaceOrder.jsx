@@ -5,6 +5,7 @@ import "../styles/form.css";
 import "../styles/dashboard.css";
 
 const CLOTH_TYPES = ["Afghani suit", "Blouse", "Chaniya", "Chaniya Choli", "Chudidar", "Fancy Dress", "Fancy T-shirt", "Gown Dress", "Lengho", "Pant", "Patiyala", "Salwar", "Shirt", "Other"];
+const FABRIC_TYPES = ["Cotton", "Silk", "Linen", "Wool", "Polyester", "Chiffon", "Georgette", "Velvet", "Crepe", "Denim", "Net", "Rayon", "Other"];
 
 const ESTIMATED_PRICES = {
   "Afghani suit": "1200 - 1300",
@@ -45,7 +46,7 @@ export default function PlaceOrder() {
   const navigate = useNavigate();
   const [form, setForm] = useState({
     clothType: "", customClothType: "", fabricType: "", color: "",
-    specialInstructions: "", deliveryDate: "", price: "",
+    specialInstructions: "", price: "",
   });
   const [measurement, setMeasurement] = useState({});
   const [showMeasurement, setShowMeasurement] = useState(false);
@@ -154,7 +155,10 @@ export default function PlaceOrder() {
                 <label>Fabric Type</label>
                 <div className="input-icon-wrap">
                   <i className="input-icon fa-solid fa-layer-group" />
-                  <input className="form-control" name="fabricType" placeholder="e.g. Cotton, Silk" value={form.fabricType} onChange={handleChange} />
+                  <select className="form-control" name="fabricType" value={form.fabricType} onChange={handleChange} style={{ paddingLeft: "40px" }}>
+                    <option value="">Select fabric type</option>
+                    {FABRIC_TYPES.map(f => <option key={f} value={f}>{f}</option>)}
+                  </select>
                 </div>
               </div>
               <div className="form-group">
@@ -166,31 +170,22 @@ export default function PlaceOrder() {
               </div>
             </div>
 
-            <div className="form-row">
-              <div className="form-group">
-                <label>Delivery Date <span className="required">*</span></label>
-                <div className="input-icon-wrap">
-                  <i className="input-icon fa-solid fa-calendar" />
-                  <input className="form-control" type="date" name="deliveryDate" min={minDate.toISOString().split("T")[0]} value={form.deliveryDate} onChange={handleChange} required />
-                </div>
+            <div className="form-group">
+              <label>Estimated Price (₹)</label>
+              <div className="input-icon-wrap">
+                <i className="input-icon fa-solid fa-indian-rupee-sign" />
+                <input 
+                  className="form-control" 
+                  type="text" 
+                  value={form.clothType && ESTIMATED_PRICES[form.clothType] ? ESTIMATED_PRICES[form.clothType] : ""} 
+                  readOnly 
+                  placeholder="Select cloth type first" 
+                  style={{ backgroundColor: "var(--bg-light)", cursor: "not-allowed", color: "var(--text-gray)" }}
+                />
               </div>
-              <div className="form-group">
-                <label>Estimated Price (₹)</label>
-                <div className="input-icon-wrap">
-                  <i className="input-icon fa-solid fa-indian-rupee-sign" />
-                  <input 
-                    className="form-control" 
-                    type="text" 
-                    value={form.clothType && ESTIMATED_PRICES[form.clothType] ? ESTIMATED_PRICES[form.clothType] : ""} 
-                    readOnly 
-                    placeholder="Select cloth type first" 
-                    style={{ backgroundColor: "var(--bg-light)", cursor: "not-allowed", color: "var(--text-gray)" }}
-                  />
-                </div>
-                <small style={{ color: "var(--primary)", fontSize: 11, marginTop: 4, display: "block", fontStyle: "italic" }}>
-                  *Price increases according to design
-                </small>
-              </div>
+              <small style={{ color: "var(--primary)", fontSize: 11, marginTop: 4, display: "block", fontStyle: "italic" }}>
+                *Price increases according to design
+              </small>
             </div>
 
             <div className="form-group">
@@ -296,6 +291,13 @@ export default function PlaceOrder() {
               </>
             )}
           </div>
+        </div>
+        
+        <div style={{ marginTop: 24, padding: "16px", background: "#fcf8f5", borderLeft: "4px solid var(--primary)", borderRadius: "4px" }}>
+          <p style={{ margin: 0, color: "var(--primary)", fontWeight: "500", fontSize: 14 }}>
+            <i className="fa-solid fa-circle-info" style={{ marginRight: 8 }}></i>
+            Note: Order completion requires a minimum of 3 days.
+          </p>
         </div>
 
         <div style={{ display: "flex", gap: 12, marginTop: 20, justifyContent: "flex-end" }}>

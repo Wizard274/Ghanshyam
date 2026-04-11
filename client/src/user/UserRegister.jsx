@@ -10,7 +10,17 @@ export default function UserRegister() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    if (name === "phone") {
+      const numericValue = value.replace(/\D/g, "");
+      if (numericValue.length <= 10) {
+        setForm({ ...form, [name]: numericValue });
+      }
+    } else {
+      setForm({ ...form, [name]: value });
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -57,7 +67,7 @@ export default function UserRegister() {
                 <label>Phone Number <span className="required">*</span></label>
                 <div className="input-icon-wrap">
                   <i className="input-icon fa-solid fa-phone" />
-                  <input className="form-control" name="phone" placeholder="+91 99999 99999" value={form.phone} onChange={handleChange} required />
+                  <input className="form-control" type="tel" maxLength="10" name="phone" placeholder="9999999999" value={form.phone} onChange={handleChange} required />
                 </div>
               </div>
             </div>

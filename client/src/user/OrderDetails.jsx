@@ -103,7 +103,7 @@ export default function OrderDetails() {
             { label: "Fabric Type", value: order.fabricType || "—" },
             { label: "Color", value: order.color || "—" },
             { label: "Order Date", value: new Date(order.createdAt).toLocaleDateString("en-IN") },
-            { label: "Delivery Date", value: order.deliveryDate ? new Date(order.deliveryDate).toLocaleDateString("en-IN") : "—" },
+            { label: "Delivery Date", value: order.deliveryDate ? new Date(order.deliveryDate).toLocaleDateString("en-IN") : "To be assigned by admin" },
             { label: "Price", value: order.price ? `₹${order.price}` : "—" },
           ].map((row) => (
             <div key={row.label} style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", borderBottom: "1px solid var(--border)", fontSize: 14 }}>
