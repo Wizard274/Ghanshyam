@@ -8,12 +8,13 @@ const STATUS_COLORS = { "Measurement Scheduled": "badge-pending", Pending: "badg
 
 export default function AdminOrders() {
   const navigate = useNavigate();
-  const [orders, setOrders] = useState([]);
+  // We'll primarily display items now, but still keep track of deleteConfirm which relies on order.
+  const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("All");
   const [customerFilter, setCustomerFilter] = useState(null); // { id, name }
-  const [deleteConfirm, setDeleteConfirm] = useState(null);
+  const [deleteConfirm, setDeleteConfirm] = useState(null); // order object
   const [deleting, setDeleting] = useState(false);
   const [msg, setMsg] = useState({ type: "", text: "" });
   const [searchParams] = useSearchParams();
@@ -24,18 +25,19 @@ export default function AdminOrders() {
     const uname = searchParams.get("customerName");
     if (s) setStatus(s);
     if (uid) setCustomerFilter({ id: uid, name: decodeURIComponent(uname || "") });
-    fetchOrders(search, s || "All", uid || null);
+    fetchItems(search, s || "All", uid || null);
   }, []);
 
-  const fetchOrders = async (q = "", s = "All", uid = null) => {
+  const fetchItems = async (q = "", s = "All", uid = null) => {
     setLoading(true);
     try {
       const params = {};
       if (q) params.search = q;
       if (s && s !== "All") params.status = s;
       if (uid) params.userId = uid;
-      const res = await orderAPI.getAll(params);
-      setOrders(res.data.orders);
+      
+      const res = await orderAPI.getAllItems(params);
+      setItems(res.data.items);
     } finally {
       setLoading(false);
     }
@@ -43,25 +45,26 @@ export default function AdminOrders() {
 
   const clearCustomerFilter = () => {
     setCustomerFilter(null);
-    fetchOrders(search, status, null);
+    fetchItems(search, status, null);
     navigate("/admin/orders", { replace: true });
   };
 
   const handleSearch = (e) => {
     setSearch(e.target.value);
-    fetchOrders(e.target.value, status, customerFilter?.id || null);
+    fetchItems(e.target.value, status, customerFilter?.id || null);
   };
 
   const handleStatus = (s) => {
     setStatus(s);
-    fetchOrders(search, s, customerFilter?.id || null);
+    fetchItems(search, s, customerFilter?.id || null);
   };
 
-  const handleDelete = async (id) => {
+  const handleDelete = async (orderId) => {
     setDeleting(true);
     try {
-      await orderAPI.delete(id);
-      setOrders((prev) => prev.filter((o) => o._id !== id));
+      await orderAPI.delete(orderId);
+      // Remove all items that belong to this order
+      setItems((prev) => prev.filter((i) => i.orderId?._id !== orderId));
       setDeleteConfirm(null);
       setMsg({ type: "success", text: "Order deleted successfully" });
       setTimeout(() => setMsg({ type: "", text: "" }), 3000);
@@ -79,12 +82,12 @@ export default function AdminOrders() {
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
           <div className="card" style={{ maxWidth: 400, width: "100%", textAlign: "center" }}>
             <div style={{ fontSize: 48, marginBottom: 12 }}>🗑️</div>
-            <h3 style={{ fontFamily: "var(--font-display)", marginBottom: 8 }}>Delete Order?</h3>
+            <h3 style={{ fontFamily: "var(--font-display)", marginBottom: 8 }}>Delete Entire Order?</h3>
             <p style={{ color: "var(--text-gray)", marginBottom: 6 }}>
               Delete order <strong>{deleteConfirm.orderNumber}</strong>?
             </p>
             <p style={{ color: "var(--danger)", fontSize: 13, marginBottom: 24 }}>
-              This will also delete the associated invoice permanently.
+              This will delete the order and <strong>ALL of its items</strong> permanently.
             </p>
             <div style={{ display: "flex", gap: 10, justifyContent: "center" }}>
               <button className="btn btn-ghost" onClick={() => setDeleteConfirm(null)}>Cancel</button>
@@ -99,17 +102,17 @@ export default function AdminOrders() {
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
         <div>
           <h1 className="page-title" style={{ margin: 0 }}>
-            {customerFilter ? `${customerFilter.name}'s Orders` : "All Orders"}
+            {customerFilter ? `${customerFilter.name}'s Items` : "All Order Items"}
           </h1>
           {customerFilter && (
             <button onClick={clearCustomerFilter} style={{ background: "none", border: "none", color: "var(--primary)", fontSize: 13, cursor: "pointer", marginTop: 4 }}>
               <i className="fa-solid fa-arrow-left" style={{ marginRight: 4 }} />
-              Show all orders
+              Show all items
             </button>
           )}
         </div>
         <Link to="/admin/orders/create" className="btn btn-primary">
-          <i className="fa-solid fa-plus" /> Create Order
+          <i className="fa-solid fa-plus" /> Create Walk-in Order
         </Link>
       </div>
 
@@ -118,7 +121,7 @@ export default function AdminOrders() {
       {/* Customer filter active banner */}
       {customerFilter && (
         <div className="alert alert-info" style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-          <span><i className="fa-solid fa-filter" style={{ marginRight: 8 }} />Showing orders for: <strong>{customerFilter.name}</strong></span>
+          <span><i className="fa-solid fa-filter" style={{ marginRight: 8 }} />Showing items for: <strong>{customerFilter.name}</strong></span>
           <button onClick={clearCustomerFilter} style={{ background: "none", border: "none", color: "var(--info)", cursor: "pointer", fontWeight: 600 }}>
             <i className="fa-solid fa-times" /> Clear Filter
           </button>
@@ -149,8 +152,8 @@ export default function AdminOrders() {
         <div style={{ display: "flex", justifyContent: "center", padding: 60 }}>
           <i className="fa-solid fa-spinner fa-spin" style={{ fontSize: 32, color: "var(--primary)" }} />
         </div>
-      ) : orders.length === 0 ? (
-        <div className="card"><div className="empty-state"><i className="fa-solid fa-inbox" /><p>No orders found</p></div></div>
+      ) : items.length === 0 ? (
+        <div className="card"><div className="empty-state"><i className="fa-solid fa-inbox" /><p>No items found</p></div></div>
       ) : (
         <div className="card" style={{ padding: 0, overflow: "hidden" }}>
           <div className="table-wrap">
@@ -159,45 +162,38 @@ export default function AdminOrders() {
                 <tr>
                   <th>Order No.</th>
                   <th>Customer</th>
-                  <th>Cloth Type</th>
+                  <th>Item / Cloth Type</th>
+                  <th>Qty</th>
                   <th>Status</th>
-                  <th>Delivery Date</th>
                   <th>Price</th>
-                  <th>Invoice</th>
                   <th>Actions</th>
                 </tr>
               </thead>
               <tbody>
-                {orders.map((order) => (
-                  <tr key={order._id}>
+                {items.map((item) => (
+                  <tr key={item._id}>
                     <td>
-                      <span style={{ fontWeight: 700, color: "var(--primary)" }}>{order.orderNumber}</span>
-                      <div style={{ fontSize: 11, color: "var(--text-gray)" }}>{new Date(order.createdAt).toLocaleDateString("en-IN")}</div>
-                    </td>
-                    <td>
-                      <div style={{ fontWeight: 500 }}>{order.userId?.name || "—"}</div>
-                      <div style={{ fontSize: 12, color: "var(--text-gray)" }}>{order.userId?.phone}</div>
+                      <span style={{ fontWeight: 700, color: "var(--primary)" }}>{item.orderId?.orderNumber || "Unknown"}</span>
+                      <div style={{ fontSize: 11, color: "var(--text-gray)" }}>{new Date(item.createdAt).toLocaleDateString("en-IN")}</div>
                     </td>
                     <td>
-                      {order.clothType}
-                      {order.customClothType && <div style={{ fontSize: 11, color: "var(--text-gray)" }}>{order.customClothType}</div>}
+                      <div style={{ fontWeight: 500 }}>{item.orderId?.userId?.name || "—"}</div>
+                      <div style={{ fontSize: 12, color: "var(--text-gray)" }}>{item.orderId?.userId?.phone || "—"}</div>
                     </td>
-                    <td><span className={`badge ${STATUS_COLORS[order.status]}`}>{order.status}</span></td>
-                    <td style={{ color: "var(--text-gray)", fontSize: 13 }}>
-                      {order.deliveryDate ? new Date(order.deliveryDate).toLocaleDateString("en-IN") : "—"}
-                    </td>
-                    <td style={{ fontWeight: 600 }}>{order.price ? `₹${order.price}` : "—"}</td>
                     <td>
-                      {order.invoiceGenerated
-                        ? <span className="badge badge-delivered"><i className="fa-solid fa-check" /> Done</span>
-                        : <span className="badge badge-pending">Pending</span>}
+                      {item.clothType}
+                      {item.customClothType && <div style={{ fontSize: 11, color: "var(--text-gray)" }}>{item.customClothType}</div>}
                     </td>
+                    <td>{item.quantity || 1}</td>
+                    <td><span className={`badge ${STATUS_COLORS[item.status]}`}>{item.status}</span></td>
+                    <td style={{ fontWeight: 600 }}>{item.price ? `₹${item.price}` : "—"}</td>
                     <td>
                       <div style={{ display: "flex", gap: 6 }}>
-                        <Link to={`/admin/orders/${order._id}`} className="btn btn-outline btn-sm">
-                          <i className="fa-solid fa-gear" /> Manage
+                        <Link to={`/admin/orders/${item.orderId?._id}`} className="btn btn-outline btn-sm">
+                          <i className="fa-solid fa-gear" /> Manage Order
                         </Link>
-                        <button className="btn btn-danger btn-sm" onClick={() => setDeleteConfirm(order)} title="Delete order">
+                        {/* We use a specific item flag because we can't easily delete one item from the backend currently. We can just offer "Delete Full Order" for now. */}
+                        <button className="btn btn-danger btn-sm" onClick={() => setDeleteConfirm(item.orderId)} title="Delete entire order">
                           <i className="fa-solid fa-trash" />
                         </button>
                       </div>

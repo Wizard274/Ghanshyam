@@ -1,4 +1,5 @@
 const Order = require("../models/orderModel");
+const OrderItem = require("../models/orderItemModel");
 const Invoice = require("../models/invoiceModel");
 const AppointmentSlot = require("../models/appointmentSlotModel");
 const Appointment = require("../models/appointmentModel");
@@ -9,11 +10,9 @@ const multer = require("multer");
 const path = require("path");
 const fs = require("fs");
 
-// Ensure uploads directory exists
 const uploadsDir = path.join(__dirname, "../uploads");
 if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
 
-// Multer config
 const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, uploadsDir),
   filename: (req, file, cb) => cb(null, `order_${Date.now()}${path.extname(file.originalname)}`),
@@ -30,37 +29,57 @@ const upload = multer({
   },
 });
 
-// Create order
 const createOrder = async (req, res) => {
   try {
-    const { clothType, customClothType, fabricType, color, specialInstructions, deliveryDate, measurement, price, notes, measurementType, slotId } = req.body;
-    const designImage = req.file ? req.file.filename : null;
-    if (!clothType) return res.status(400).json({ success: false, message: "Cloth type is required" });
+    const { items, measurementType, slotId, deliveryDate, notes } = req.body;
+    let parsedItems = [];
+    if (items) {
+      parsedItems = typeof items === "string" ? JSON.parse(items) : items;
+    } else {
+        const { clothType, customClothType, fabricType, color, specialInstructions, measurement, price } = req.body;
+        if (clothType) {
+            parsedItems.push({
+                clothType, customClothType, fabricType, color, specialInstructions, price,
+                measurement: measurement ? (typeof measurement === "string" ? JSON.parse(measurement) : measurement) : {}
+            });
+        }
+    }
+    
+    if (!parsedItems || parsedItems.length === 0) return res.status(400).json({ success: false, message: "Cloth type/items are required" });
 
     let slot;
     if (measurementType === "tailor") {
-        if (!slotId) return res.status(400).json({ success: false, message: "Appointment slot is required for tailor measurement" });
+        if (!slotId) return res.status(400).json({ success: false, message: "Appointment slot is required" });
         slot = await AppointmentSlot.findById(slotId);
         if (!slot || !slot.isActive || slot.booked >= slot.capacity) {
             return res.status(400).json({ success: false, message: "Selected slot is no longer available" });
         }
     }
 
+    const designImage = req.file ? req.file.filename : null;
+
     const order = await Order.create({
         userId: req.user._id,
-        clothType,
-        customClothType: customClothType || "",
-        fabricType: fabricType || "",
-        color: color || "",
-        specialInstructions: specialInstructions || "",
         deliveryDate: deliveryDate || null,
         measurementType: measurementType || "self",
-        measurement: measurementType === "tailor" ? {} : (measurement ? JSON.parse(measurement) : {}),
-        status: measurementType === "tailor" ? "Measurement Scheduled" : "Pending",
         designImage,
-        price: parseFloat(price) || 0,
         notes: notes || "",
     });
+
+    const itemsToCreate = parsedItems.map(item => ({
+        orderId: order._id,
+        clothType: item.clothType,
+        customClothType: item.customClothType || "",
+        fabricType: item.fabricType || "",
+        color: item.color || "",
+        measurement: measurementType === "tailor" ? {} : (item.measurement || {}),
+        specialInstructions: item.specialInstructions || "",
+        price: parseFloat(item.price) || 0,
+        status: measurementType === "tailor" ? "Measurement Scheduled" : "Pending",
+        quantity: parseInt(item.quantity) || 1
+    }));
+
+    await OrderItem.insertMany(itemsToCreate);
 
     if (measurementType === "tailor" && slot) {
         slot.booked += 1;
@@ -73,16 +92,86 @@ const createOrder = async (req, res) => {
             time: `${slot.startTime} - ${slot.endTime}`
         });
     }
-    res.status(201).json({ success: true, message: "Order placed successfully", order });
+    
+    const createdItems = await OrderItem.find({ orderId: order._id });
+    res.status(201).json({ success: true, message: "Order placed successfully", order: { ...order._doc, items: createdItems } });
   } catch (err) {
-    console.error("createOrder error:", err);
+    res.status(500).json({ success: false, message: "Server error: " + err.message });
+  }
+};
+
+const adminCreateOrder = async (req, res) => {
+  try {
+    const { userId, items, deliveryDate, notes } = req.body;
+    if (!userId) return res.status(400).json({ success: false, message: "Customer is required" });
+    if (!deliveryDate) return res.status(400).json({ success: false, message: "Delivery date is required" });
+
+    const selDate = new Date(deliveryDate);
+    const minDate = new Date();
+    minDate.setDate(minDate.getDate() + 3);
+    minDate.setHours(0, 0, 0, 0);
+    if (selDate < minDate) {
+      return res.status(400).json({ success: false, message: "Delivery date must be at least 3 days after order date" });
+    }
+
+    let parsedItems = items ? (typeof items === "string" ? JSON.parse(items) : items) : null;
+    if (!parsedItems || parsedItems.length === 0) {
+        const { clothType, customClothType, fabricType, color, specialInstructions, measurement, price } = req.body;
+        if (!clothType) return res.status(400).json({ success: false, message: "Cloth type is required" });
+        parsedItems = [{ clothType, customClothType, fabricType, color, specialInstructions, measurement, price }];
+    }
+
+    const order = await Order.create({
+      userId,
+      deliveryDate: new Date(deliveryDate),
+      notes: notes || "",
+    });
+
+    const itemsToCreate = parsedItems.map(item => ({
+        orderId: order._id,
+        clothType: item.clothType,
+        customClothType: item.customClothType || "",
+        fabricType: item.fabricType || "",
+        color: item.color || "",
+        measurement: item.measurement || {},
+        specialInstructions: item.specialInstructions || "",
+        price: parseFloat(item.price) || 0,
+        status: "Pending",
+        quantity: parseInt(item.quantity) || 1
+    }));
+    await OrderItem.insertMany(itemsToCreate);
+
+    try {
+        const customer = await User.findById(userId);
+        if (customer) {
+            await sendDeliveryScheduledEmail(order, customer, "N/A", "Pending");
+            order.confirmationEmailSent = true;
+            await order.save();
+        }
+    } catch (emailErr) {}
+
+    const createdItems = await OrderItem.find({ orderId: order._id });
+    res.status(201).json({ success: true, message: "Order created", order: { ...order._doc, items: createdItems } });
+  } catch (err) {
     res.status(500).json({ success: false, message: "Server error: " + err.message });
   }
 };
 
 const getUserOrders = async (req, res) => {
   try {
-    const orders = await Order.find({ userId: req.user._id }).sort({ createdAt: -1 });
+    const orders = await Order.find({ userId: req.user._id }).sort({ createdAt: -1 }).lean();
+    for (let o of orders) {
+        o.items = await OrderItem.find({ orderId: o._id }).lean();
+        if(o.items.length > 0) {
+            const allDelivered = o.items.every(i => i.status === "Delivered");
+            o.status = allDelivered ? "Delivered" : "Pending";
+            o.price = o.items.reduce((sum, item) => sum + (item.price || 0), 0);
+            o.clothType = o.items.map(i => i.clothType).join(", ");
+        } else {
+            o.status = o.status || "Pending";
+            o.clothType = o.clothType || "Unknown Type";
+        }
+    }
     res.json({ success: true, orders });
   } catch (err) {
     res.status(500).json({ success: false, message: "Server error" });
@@ -91,22 +180,30 @@ const getUserOrders = async (req, res) => {
 
 const getOrderById = async (req, res) => {
   try {
-    const order = await Order.findById(req.params.id).populate("userId", "name email phone address");
-    if (!order) return res.status(404).json({ success: false, message: "Order not found" });
-    if (req.user.role !== "admin" && order.userId._id.toString() !== req.user._id.toString())
+    const orderDoc = await Order.findById(req.params.id).populate("userId", "name email phone address").lean();
+    if (!orderDoc) return res.status(404).json({ success: false, message: "Order not found" });
+    if (req.user.role !== "admin" && orderDoc.userId._id.toString() !== req.user._id.toString())
       return res.status(403).json({ success: false, message: "Access denied" });
-    res.json({ success: true, order });
+    
+    orderDoc.items = await OrderItem.find({ orderId: orderDoc._id }).lean();
+    if(orderDoc.items.length > 0) {
+        orderDoc.status = orderDoc.items.every(i => i.status === "Delivered") ? "Delivered" : "Pending";
+        orderDoc.price = orderDoc.items.reduce((sum, item) => sum + (item.price || 0), 0);
+    } else {
+        orderDoc.status = orderDoc.status || "Pending";
+        orderDoc.clothType = orderDoc.clothType || "Unknown Type";
+    }
+
+    res.json({ success: true, order: orderDoc });
   } catch (err) {
     res.status(500).json({ success: false, message: "Server error" });
   }
 };
 
-// Admin: get all orders — supports ?status, ?search, ?userId
 const getAllOrders = async (req, res) => {
   try {
-    const { status, search, date, userId } = req.query;
+    const { search, date, userId } = req.query;
     let query = {};
-    if (status && status !== "All") query.status = status;
     if (userId) query.userId = userId;
     if (date) {
       const d = new Date(date);
@@ -114,7 +211,19 @@ const getAllOrders = async (req, res) => {
       query.deliveryDate = { $gte: d, $lt: next };
     }
 
-    let orders = await Order.find(query).populate("userId", "name email phone").sort({ createdAt: -1 });
+    let orders = await Order.find(query).populate("userId", "name email phone").sort({ createdAt: -1 }).lean();
+    
+    for(let o of orders) {
+        o.items = await OrderItem.find({ orderId: o._id }).lean();
+        if(o.items.length > 0) {
+            o.status = o.items.every(item => item.status === "Delivered") ? "Delivered" : "Pending";
+            o.price = o.items.reduce((sum, item) => sum + (item.price || 0), 0);
+            o.clothType = o.items.map(i => i.clothType).join(", "); 
+        } else {
+            o.status = o.status || "Pending";
+            o.clothType = o.clothType || "Unknown Type";
+        }
+    }
 
     if (search) {
       const s = search.toLowerCase();
@@ -123,21 +232,50 @@ const getAllOrders = async (req, res) => {
         o.orderNumber?.toLowerCase().includes(s)
       );
     }
+    
     res.json({ success: true, orders });
   } catch (err) {
     res.status(500).json({ success: false, message: "Server error" });
   }
 };
 
+const getAllItems = async (req, res) => {
+  try {
+    const { status, search, userId } = req.query;
+    let query = {};
+    if (status && status !== "All") query.status = status;
+    
+    let items = await OrderItem.find(query).populate({
+        path: "orderId",
+        populate: { path: "userId", select: "name email phone" }
+    }).sort({ createdAt: -1 }).lean();
+    
+    if (userId) {
+        items = items.filter(item => item.orderId?.userId?._id?.toString() === userId);
+    }
+
+    if (search) {
+      const s = search.toLowerCase();
+      items = items.filter(i => 
+        i.orderId?.userId?.name?.toLowerCase().includes(s) ||
+        i.orderId?.orderNumber?.toLowerCase().includes(s)
+      );
+    }
+
+    res.json({ success: true, items });
+  } catch(err) {
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+};
+
 const updateOrderStatus = async (req, res) => {
   try {
-    const { status, price, notes, deliveryDate } = req.body;
-    const order = await Order.findById(req.params.id);
+    const { notes, deliveryDate } = req.body;
+    const orderId = req.params.id; 
+    
+    const order = await Order.findById(orderId);
     if (!order) return res.status(404).json({ success: false, message: "Order not found" });
 
-    const prevStatus = order.status;
-    if (status) order.status = status;
-    if (price !== undefined) order.price = parseFloat(price) || 0;
     if (notes !== undefined) order.notes = notes;
     
     let isDeliveryDateUpdated = false;
@@ -160,141 +298,91 @@ const updateOrderStatus = async (req, res) => {
     
     await order.save();
 
-    let invoice = null;
-    if (status === "Delivered" && prevStatus !== "Delivered" && !order.invoiceGenerated) {
-      const itemPrice = order.price || 500;
-      invoice = await Invoice.create({
-        orderId: order._id,
-        customerId: order.userId,
-        items: [{ name: `${order.clothType} Stitching`, description: order.fabricType || "", quantity: 1, price: itemPrice }],
-        subtotal: itemPrice, discount: 0, tax: 0, totalAmount: itemPrice,
-        paymentStatus: "Pending", paymentMethod: "Cash",
-      });
-      order.invoiceGenerated = true;
-      await order.save();
-    } else if (order.invoiceGenerated) {
-      invoice = await Invoice.findOne({ orderId: order._id });
-    }
-
-    if (status === "Delivered" && prevStatus !== "Delivered" && invoice) {
-      try {
-        const customer = await User.findById(order.userId);
-        if (customer) {
-          const pdfBuffer = await generateInvoicePDF(invoice, order, customer);
-          await sendOrderCompletedEmail(order, customer, pdfBuffer, invoice.invoiceNumber);
-        }
-      } catch (emailErr) {
-        console.error("Failed to send completion email:", emailErr);
-      }
-    }
-
     if (isDeliveryDateUpdated) {
       try {
         const customer = await User.findById(order.userId);
-        if (customer) {
-          // Attempt to get invoice if generated, else use fallbacks
-          if (!invoice && order.invoiceGenerated) invoice = await Invoice.findOne({ orderId: order._id });
-          const invoiceNum = invoice ? invoice.invoiceNumber : "N/A";
-          const paymentStatus = invoice ? invoice.paymentStatus : "Pending";
-          
-          await sendDeliveryScheduledEmail(order, customer, invoiceNum, paymentStatus);
-          order.confirmationEmailSent = true;
-          await order.save();
-        }
-      } catch (emailErr) {
-        console.error("Failed to send delivery scheduled email:", emailErr);
-      }
-    }
-
-    res.json({ success: true, message: "Order updated", order });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ success: false, message: "Server error" });
-  }
-};
-
-// Update measurement — user (Pending only) OR admin (any time)
-const updateMeasurement = async (req, res) => {
-  try {
-    const order = await Order.findById(req.params.id);
-    if (!order) return res.status(404).json({ success: false, message: "Order not found" });
-
-    if (req.user.role !== "admin") {
-      if (order.userId.toString() !== req.user._id.toString())
-        return res.status(403).json({ success: false, message: "Access denied" });
-      if (order.status !== "Pending" && order.status !== "Measurement Scheduled")
-        return res.status(400).json({ success: false, message: "Cannot edit measurement after initial stage" });
-    }
-
-    order.measurement = req.body.measurement || order.measurement;
-
-    // Transition to Pending if admin is adding measurements to a scheduled order
-    if (req.user.role === "admin" && order.status === "Measurement Scheduled") {
-        order.status = "Pending";
-        await Appointment.findOneAndUpdate(
-            { orderId: order._id, status: "scheduled" },
-            { status: "completed" }
-        );
-    }
-
-    await order.save();
-    res.json({ success: true, message: "Measurement updated", order });
-  } catch (err) {
-    res.status(500).json({ success: false, message: "Server error" });
-  }
-};
-
-const adminCreateOrder = async (req, res) => {
-  try {
-    const { userId, clothType, customClothType, fabricType, color, specialInstructions, deliveryDate, measurement, price, notes } = req.body;
-    if (!userId) return res.status(400).json({ success: false, message: "Customer is required" });
-    if (!clothType) return res.status(400).json({ success: false, message: "Cloth type is required" });
-    if (!deliveryDate) return res.status(400).json({ success: false, message: "Delivery date is required" });
-
-    const minDate = new Date();
-    minDate.setDate(minDate.getDate() + 3);
-    minDate.setHours(0, 0, 0, 0);
-    const selDate = new Date(deliveryDate);
-    if (selDate < minDate) {
-      return res.status(400).json({ success: false, message: "Delivery date must be at least 3 days after order date" });
-    }
-
-    const order = await Order.create({
-      userId, clothType,
-      customClothType: customClothType || "",
-      fabricType: fabricType || "",
-      color: color || "",
-      specialInstructions: specialInstructions || "",
-      deliveryDate: new Date(deliveryDate),
-      measurement: measurement || {},
-      price: parseFloat(price) || 0,
-      notes: notes || "",
-    });
-    
-    try {
-        const customer = await User.findById(userId);
         if (customer) {
             await sendDeliveryScheduledEmail(order, customer, "N/A", "Pending");
             order.confirmationEmailSent = true;
             await order.save();
         }
-    } catch (emailErr) {
-        console.error("Failed to send walk-in delivery scheduled email:", emailErr);
+      } catch (emailErr) {}
     }
 
-    res.status(201).json({ success: true, message: "Order created", order });
+    res.json({ success: true, message: "Order updated", order });
   } catch (err) {
-    res.status(500).json({ success: false, message: "Server error: " + err.message });
+    res.status(500).json({ success: false, message: "Server error" });
   }
 };
 
-// Delete order (admin)
+const updateItemStatus = async (req, res) => {
+    try {
+        const itemId = req.params.itemId;
+        const { status, measurement, price } = req.body;
+        
+        const item = await OrderItem.findById(itemId);
+        if(!item) return res.status(404).json({success: false, message: "Item not found"});
+        
+        const prevStatus = item.status;
+        if(status) item.status = status;
+        if(measurement) item.measurement = measurement;
+        if(price !== undefined) item.price = parseFloat(price) || 0;
+        
+        await item.save();
+
+        const order = await Order.findById(item.orderId);
+        const allItems = await OrderItem.find({ orderId: order._id });
+        const allDelivered = allItems.length > 0 && allItems.every(i => i.status === "Delivered");
+
+        if (allDelivered && !order.invoiceGenerated) {
+            let totalAmount = allItems.reduce((sum, i) => sum + (i.price || 0), 0);
+            if(totalAmount === 0) totalAmount = 500; 
+            
+            const invoiceItems = allItems.map(i => ({
+                name: `${i.clothType} Stitching`,
+                description: i.fabricType || "",
+                quantity: i.quantity || 1,
+                price: i.price || 0
+            }));
+
+            const invoice = await Invoice.create({
+                orderId: order._id,
+                customerId: order.userId,
+                items: invoiceItems,
+                subtotal: totalAmount, discount: 0, tax: 0, totalAmount: totalAmount,
+                paymentStatus: "Pending", paymentMethod: "Cash",
+            });
+            order.invoiceGenerated = true;
+            await order.save();
+
+            try {
+                const customer = await User.findById(order.userId);
+                if (customer) {
+                  const pdfBuffer = await generateInvoicePDF(invoice, order, customer);
+                  await sendOrderCompletedEmail(order, customer, pdfBuffer, invoice.invoiceNumber);
+                }
+            } catch (err) {
+                console.error("Failed to send order completion email");
+            }
+        }
+
+        res.json({ success: true, message: "Item updated", item });
+    } catch(err) {
+        res.status(500).json({ success: false, message: "Server error" });
+    }
+};
+
+const updateMeasurement = async (req, res) => {
+    res.status(400).json({ success: false, message: "Please update measurements at the item level." });
+};
+
 const deleteOrder = async (req, res) => {
   try {
     const order = await Order.findById(req.params.id);
     if (!order) return res.status(404).json({ success: false, message: "Order not found" });
 
     await Invoice.deleteMany({ orderId: order._id });
+    await OrderItem.deleteMany({ orderId: order._id });
 
     if (order.designImage) {
       const imgPath = path.join(uploadsDir, order.designImage);
@@ -308,24 +396,39 @@ const deleteOrder = async (req, res) => {
   }
 };
 
-// Stats — includes cutting
 const getStats = async (req, res) => {
   try {
     const userId = req.user.role === "admin" ? null : req.user._id;
-    const filter = userId ? { userId } : {};
-
+    
+    let orderIds = [];
+    if(userId) {
+        const orders = await Order.find({userId}, "_id");
+        orderIds = orders.map(o => o._id);
+    }
+    const itemFilter = userId ? { orderId: { $in: orderIds } } : {};
+    
     const [total, pending, cutting, stitching, ready, delivered] = await Promise.all([
-      Order.countDocuments(filter),
-      Order.countDocuments({ ...filter, status: "Pending" }),
-      Order.countDocuments({ ...filter, status: "Cutting" }),
-      Order.countDocuments({ ...filter, status: "Stitching" }),
-      Order.countDocuments({ ...filter, status: "Ready" }),
-      Order.countDocuments({ ...filter, status: "Delivered" }),
+      Order.countDocuments(userId ? {userId} : {}),
+      OrderItem.countDocuments({ ...itemFilter, status: "Pending" }),
+      OrderItem.countDocuments({ ...itemFilter, status: "Cutting" }),
+      OrderItem.countDocuments({ ...itemFilter, status: "Stitching" }),
+      OrderItem.countDocuments({ ...itemFilter, status: "Ready" }),
+      OrderItem.countDocuments({ ...itemFilter, status: "Delivered" }),
     ]);
 
     const invoiceFilter = userId ? { customerId: userId } : {};
     const invoices = await Invoice.countDocuments(invoiceFilter);
-    const recent = await Order.find(filter).populate("userId", "name").sort({ createdAt: -1 }).limit(5);
+    let recent = await Order.find(userId ? {userId} : {}).populate("userId", "name").sort({ createdAt: -1 }).limit(5).lean();
+    for (let o of recent) {
+        o.items = await OrderItem.find({ orderId: o._id }).lean();
+        if(o.items.length > 0) {
+            o.status = o.items.every(item => item.status === "Delivered") ? "Delivered" : "Pending";
+            o.clothType = o.items.map(i => i.clothType).join(", "); 
+        } else {
+            o.status = o.status || "Pending";
+            o.clothType = o.clothType || "Unknown Type";
+        }
+    }
 
     res.json({ success: true, stats: { total, pending, cutting, stitching, ready, delivered, invoices }, recent });
   } catch (err) {
@@ -334,7 +437,7 @@ const getStats = async (req, res) => {
 };
 
 module.exports = {
-  createOrder, getUserOrders, getOrderById, getAllOrders,
-  updateOrderStatus, updateMeasurement, adminCreateOrder,
+  createOrder, getUserOrders, getOrderById, getAllOrders, getAllItems,
+  updateOrderStatus, updateItemStatus, updateMeasurement, adminCreateOrder,
   deleteOrder, getStats, upload
 };

@@ -167,7 +167,7 @@ export default function AdminDashboard() {
                     <td><strong style={{ color: "var(--primary)" }}>{o.orderNumber}</strong></td>
                     <td>{o.userId?.name || "—"}</td>
                     <td>{o.clothType}</td>
-                    <td><span className={`badge badge-${o.status.toLowerCase()}`}>{o.status}</span></td>
+                    <td><span className={`badge badge-${(o.status || "Pending").toLowerCase()}`}>{o.status || "Pending"}</span></td>
                     <td style={{ color: "var(--text-gray)" }}>{new Date(o.createdAt).toLocaleDateString("en-IN")}</td>
                     <td><Link to={`/admin/orders/${o._id}`} className="btn btn-outline btn-sm">Manage</Link></td>
                   </tr>

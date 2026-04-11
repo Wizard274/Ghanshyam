@@ -1,4 +1,5 @@
 const nodemailer = require("nodemailer");
+const OrderItem = require("../models/orderItemModel");
 
 const createTransporter = () => {
   return nodemailer.createTransport({
@@ -23,6 +24,12 @@ const sendDeliveryScheduledEmail = async (order, customer, invoiceNumber, paymen
     weekday: "long", year: "numeric", month: "long", day: "numeric"
   });
 
+  const items = await OrderItem.find({ orderId: order._id }).lean();
+  let itemsString = order.clothType || "Multiple Items Details Attached";
+  if (items.length > 0) {
+      itemsString = items.map(i => `${i.quantity}x ${i.clothType} (${i.fabricType || "No Fabric Spec"})`).join(", ");
+  }
+
   const html = `
     <div style="font-family: 'Segoe UI', Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #ffffff; border: 1px solid #eaeaea; border-radius: 8px; overflow: hidden;">
       <div style="padding: 30px; text-align: left;">
@@ -35,10 +42,8 @@ const sendDeliveryScheduledEmail = async (order, customer, invoiceNumber, paymen
         <div style="background: #fcf8f5; border-left: 4px solid #8B4513; padding: 16px; margin-bottom: 24px;">
           <h3 style="margin: 0 0 12px 0; color: #333333; font-size: 16px;">Order Details</h3>
           <p style="margin: 0 0 8px 0; color: #555555; font-size: 14px;"><strong>Order Number:</strong> ${order.orderNumber}</p>
-          <p style="margin: 0 0 8px 0; color: #555555; font-size: 14px;"><strong>Invoice Number:</strong> ${invoiceNumber}</p>
-          <p style="margin: 0 0 8px 0; color: #555555; font-size: 14px;"><strong>Cloth Type:</strong> ${order.clothType}</p>
-          <p style="margin: 0 0 8px 0; color: #555555; font-size: 14px;"><strong>Fabric:</strong> ${order.fabricType || "N/A"}</p>
-          <p style="margin: 0 0 8px 0; color: #555555; font-size: 14px;"><strong>Color:</strong> ${order.color || "N/A"}</p>
+          ${invoiceNumber !== "N/A" ? `<p style="margin: 0 0 8px 0; color: #555555; font-size: 14px;"><strong>Invoice Number:</strong> ${invoiceNumber}</p>` : ""}
+          <p style="margin: 0 0 8px 0; color: #555555; font-size: 14px;"><strong>Items Tracked:</strong> ${itemsString}</p>
           <p style="margin: 0 0 8px 0; color: #555555; font-size: 14px;"><strong>Payment Status:</strong> ${paymentStatus}</p>
         </div>
         

@@ -95,17 +95,17 @@ const generateInvoicePDF = (invoice, order, customer) => {
     
     doc.roundedRect(25, y, 545, 45, 6).fill(lightBg);
     
-    // 4 columns inside the row
+    // Consolidating Order Details
     doc.fillColor(textGray).font(boldFont).fontSize(10)
-       .text("Cloth Type", 40, y + 10)
-       .text("Fabric", 180, y + 10)
-       .text("Color", 320, y + 10)
+       .text("Total Items Processed", 40, y + 10)
+       .text("Measurement Setup", 180, y + 10)
+       .text("Measurement Status", 320, y + 10)
        .text("Delivery Date", 430, y + 10);
        
     doc.fillColor(textDark).font(regularFont).fontSize(10)
-       .text(order.clothType, 40, y + 25)
-       .text(order.fabricType || "N/A", 180, y + 25)
-       .text(order.color || "N/A", 320, y + 25)
+       .text(invoice.items.length.toString(), 40, y + 25)
+       .text(order.measurementType === "tailor" ? "Walk-In" : "Self-Submitted", 180, y + 25)
+       .text(order.measurementType === "tailor" ? "Retained on File" : "Captured", 320, y + 25)
        .text(order.deliveryDate ? new Date(order.deliveryDate).toLocaleDateString("en-IN") : "N/A", 430, y + 25);
 
     y += 65;

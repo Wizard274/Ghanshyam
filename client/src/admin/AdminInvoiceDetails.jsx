@@ -120,8 +120,8 @@ export default function AdminInvoiceDetails() {
             <div className="invoice-shop-name">ઘનશ્યામ Ladies Tailor</div>
             <div className="invoice-shop-tagline">Precision and Perfection in Every Stitch</div>
             <div className="invoice-shop-contact">
-              📞 +91 99999 99999 &nbsp;·&nbsp; ✉ ghanshyamladiestailor21@gmail.commail.com<br />
-              📍 Your Shop Address, City, Gujarat
+              📞 +91 81609 42724 &nbsp;·&nbsp; ✉ ghanshyamladiestailor21@gmail.com<br />
+              📍 Shop no:-21, Gigev Park, Opposite Uttamnagar, Ratanpark Road, Bapunagar, Ahmedabad.
             </div>
           </div>
           <div className="invoice-number-block">

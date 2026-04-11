@@ -12,7 +12,6 @@ const CLOTH_TYPES = [
 
 const FABRIC_TYPES = ["Cotton", "Silk", "Linen", "Wool", "Polyester", "Chiffon", "Georgette", "Velvet", "Crepe", "Denim", "Net", "Rayon", "Other"];
 
-
 const ESTIMATED_PRICES = {
   "Afghani suit": "1200 - 1300",
   "Blouse": "500 - 3000",
@@ -44,15 +43,20 @@ const MEASUREMENT_FIELDS = [
 export default function AdminCreateOrder() {
   const navigate = useNavigate();
   const [customers, setCustomers] = useState([]);
-  const [form, setForm] = useState({
-    userId: "", clothType: "", customClothType: "",
-    fabricType: "", color: "", specialInstructions: "",
-    deliveryDate: "", price: "", notes: "",
+  
+  // Order Level Info
+  const [orderForm, setOrderForm] = useState({
+    userId: "", deliveryDate: "", notes: "",
   });
-  const [measurement, setMeasurement] = useState({});
-  const [designImage, setDesignImage] = useState(null);
-  const [imagePreview, setImagePreview] = useState(null);
-  const [showMeasure, setShowMeasure] = useState(false);
+  
+  // Items List
+  const [items, setItems] = useState([
+    {
+      clothType: "", customClothType: "", fabricType: "", color: "",
+      specialInstructions: "", price: "", measurement: {}, showMeasure: false, quantity: 1
+    }
+  ]);
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
@@ -61,30 +65,43 @@ export default function AdminCreateOrder() {
     userAPI.getAllCustomers().then((res) => setCustomers(res.data.customers));
   }, []);
 
-  const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
+  const handleOrderChange = (e) => setOrderForm({ ...orderForm, [e.target.name]: e.target.value });
 
-  const handleImageChange = (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    setDesignImage(file);
-    setImagePreview(URL.createObjectURL(file));
+  const handleItemChange = (index, field, value) => {
+    const newItems = [...items];
+    newItems[index][field] = value;
+    setItems(newItems);
   };
 
-  const removeImage = () => {
-    setDesignImage(null);
-    setImagePreview(null);
+  const handleMeasurementChange = (index, key, value) => {
+    const newItems = [...items];
+    newItems[index].measurement = { ...newItems[index].measurement, [key]: value };
+    setItems(newItems);
+  };
+
+  const addItem = () => {
+    setItems([...items, { clothType: "", customClothType: "", fabricType: "", color: "", specialInstructions: "", price: "", measurement: {}, showMeasure: false, quantity: 1 }]);
+  };
+
+  const removeItem = (index) => {
+    const newItems = items.filter((_, i) => i !== index);
+    setItems(newItems);
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!form.userId) return setError("Please select a customer");
-    if (!form.clothType) return setError("Please select a cloth type");
-    if (!form.deliveryDate) return setError("Please select a delivery date");
+    if (!orderForm.userId) return setError("Please select a customer");
+    if (!orderForm.deliveryDate) return setError("Please select a delivery date");
+    if (items.length === 0) return setError("Please add at least one item.");
+
+    for(let i=0; i<items.length; i++) {
+        if(!items[i].clothType) return setError(`Please select a cloth type for Item ${i+1}`);
+    }
 
     const minDate = new Date();
     minDate.setDate(minDate.getDate() + 3);
     minDate.setHours(0, 0, 0, 0);
-    const selDate = new Date(form.deliveryDate);
+    const selDate = new Date(orderForm.deliveryDate);
     if (selDate < minDate) {
       return setError("Delivery date must be at least 3 days after order date");
     }
@@ -92,10 +109,17 @@ export default function AdminCreateOrder() {
     setError(""); setLoading(true);
 
     try {
+      // Prepare payload
+      const cleanedItems = items.map(item => ({
+        ...item,
+        measurement: item.showMeasure ? item.measurement : {}
+      }));
+
       const payload = {
-        ...form,
-        measurement: showMeasure ? measurement : {},
-        designImage: designImage || undefined,
+        userId: orderForm.userId,
+        deliveryDate: orderForm.deliveryDate,
+        notes: orderForm.notes,
+        items: cleanedItems
       };
 
       const res = await orderAPI.adminCreate(payload);
@@ -134,20 +158,16 @@ export default function AdminCreateOrder() {
       )}
 
       <form onSubmit={handleSubmit}>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
-
-          {/* Left Column */}
-          <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-
-            {/* Order Details */}
-            <div className="card">
-              <div className="form-section-title">
-                <i className="fa-solid fa-user" style={{ marginRight: 8 }} />Customer & Order
-              </div>
-
+        {/* Order Details Container */}
+        <div className="card" style={{ marginBottom: 20 }}>
+          <div className="form-section-title">
+            <i className="fa-solid fa-user" style={{ marginRight: 8 }} />Customer & Order General Details
+          </div>
+          
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 20 }}>
               <div className="form-group">
                 <label>Select Customer <span className="required">*</span></label>
-                <select className="form-control" name="userId" value={form.userId} onChange={handleChange} required>
+                <select className="form-control" name="userId" value={orderForm.userId} onChange={handleOrderChange} required>
                   <option value="">Choose customer...</option>
                   {customers.map((c) => (
                     <option key={c._id} value={c._id}>{c.name} — {c.phone}</option>
@@ -156,205 +176,150 @@ export default function AdminCreateOrder() {
               </div>
 
               <div className="form-group">
-                <label>Cloth Type <span className="required">*</span></label>
-                <select className="form-control" name="clothType" value={form.clothType} onChange={handleChange} required>
-                  <option value="">Select type...</option>
-                  {CLOTH_TYPES.map((t) => <option key={t}>{t}</option>)}
-                </select>
-              </div>
-
-              {form.clothType === "Other" && (
-                <div className="form-group">
-                  <label>Specify Cloth Type <span className="required">*</span></label>
-                  <div className="input-icon-wrap">
-                    <i className="input-icon fa-solid fa-pencil" />
-                    <input className="form-control" name="customClothType"
-                      placeholder="Enter cloth type"
-                      value={form.customClothType} onChange={handleChange} required />
-                  </div>
-                </div>
-              )}
-
-              <div className="form-row">
-                <div className="form-group">
-                  <label>Fabric Type</label>
-                  <select className="form-control" name="fabricType" value={form.fabricType} onChange={handleChange}>
-                    <option value="">Select fabric type</option>
-                    {FABRIC_TYPES.map(f => <option key={f} value={f}>{f}</option>)}
-                  </select>
-                </div>
-                <div className="form-group">
-                  <label>Color</label>
-                  <input className="form-control" name="color" placeholder="e.g. Red"
-                    value={form.color} onChange={handleChange} />
-                </div>
-              </div>
-
-              <div className="form-row">
-                <div className="form-group">
-                  <label>Delivery Date <span className="required">*</span></label>
-                  <input className="form-control" type="date" name="deliveryDate" min={new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString().split("T")[0]}
-                    value={form.deliveryDate} onChange={handleChange} required />
-                  <small style={{ color: "var(--primary)", fontSize: 11, marginTop: 4, display: "block", fontWeight: 500 }}>
-                    Note: Order completion requires a minimum of 3 days.
-                  </small>
-                </div>
-                <div className="form-group">
-                  <label>Estimated Price (₹)</label>
-                  <div className="input-icon-wrap">
-                    <i className="input-icon fa-solid fa-indian-rupee-sign" />
-                    <input 
-                      className="form-control" 
-                      type="text" 
-                      value={form.clothType && ESTIMATED_PRICES[form.clothType] ? ESTIMATED_PRICES[form.clothType] : ""} 
-                      readOnly 
-                      placeholder="Select cloth type first" 
-                      style={{ backgroundColor: "var(--bg-light)", cursor: "not-allowed", color: "var(--text-gray)" }}
-                    />
-                  </div>
-                  <small style={{ color: "var(--primary)", fontSize: 11, marginTop: 4, display: "block", fontStyle: "italic" }}>
-                    *Price increases according to design
-                  </small>
-                </div>
+                <label>Delivery Date <span className="required">*</span></label>
+                <input className="form-control" type="date" name="deliveryDate" min={new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString().split("T")[0]}
+                  value={orderForm.deliveryDate} onChange={handleOrderChange} required />
               </div>
 
               <div className="form-group">
-                <label>Special Instructions</label>
-                <textarea className="form-control" name="specialInstructions" rows={3}
-                  placeholder="Any special design instructions..."
-                  value={form.specialInstructions} onChange={handleChange} />
-              </div>
-
-              <div className="form-group" style={{ marginBottom: 0 }}>
                 <label>Admin Notes</label>
                 <input className="form-control" name="notes"
-                  placeholder="Internal note (not visible to customer)"
-                  value={form.notes} onChange={handleChange} />
+                  placeholder="Internal note"
+                  value={orderForm.notes} onChange={handleOrderChange} />
               </div>
-            </div>
-
-            {/* Design Image Upload */}
-            <div className="card">
-              <div className="form-section-title">
-                <i className="fa-solid fa-image" style={{ marginRight: 8 }} />Design Reference Image
-                <span style={{ fontSize: 11, color: "var(--text-gray)", fontWeight: 400, marginLeft: 8, textTransform: "none", letterSpacing: 0 }}>
-                  (Optional)
-                </span>
-              </div>
-
-              {!imagePreview ? (
-                <label style={{
-                  display: "flex", flexDirection: "column", alignItems: "center",
-                  justifyContent: "center", gap: 10,
-                  border: "2px dashed var(--primary-border)", borderRadius: 12,
-                  padding: "32px 20px", cursor: "pointer",
-                  background: "var(--primary-pale)", transition: "all 0.2s",
-                }}>
-                  <i className="fa-solid fa-cloud-arrow-up"
-                    style={{ fontSize: 36, color: "var(--primary)", opacity: 0.6 }} />
-                  <div style={{ fontWeight: 500, color: "var(--text-mid)", fontSize: 14 }}>
-                    Click to upload design image
-                  </div>
-                  <div style={{ fontSize: 12, color: "var(--text-gray)" }}>
-                    JPG, PNG, GIF, WEBP — Max 5MB
-                  </div>
-                  <input
-                    type="file"
-                    accept="image/jpeg,image/png,image/gif,image/webp"
-                    onChange={handleImageChange}
-                    style={{ display: "none" }}
-                  />
-                </label>
-              ) : (
-                <div style={{ position: "relative" }}>
-                  <img src={imagePreview} alt="Design preview"
-                    style={{ width: "100%", maxHeight: 200, objectFit: "cover", borderRadius: 10 }} />
-                  <button type="button" onClick={removeImage}
-                    style={{
-                      position: "absolute", top: 8, right: 8,
-                      background: "rgba(0,0,0,0.65)", color: "#fff",
-                      border: "none", borderRadius: "50%",
-                      width: 32, height: 32, cursor: "pointer", fontSize: 14,
-                      display: "flex", alignItems: "center", justifyContent: "center",
-                    }}>
-                    <i className="fa-solid fa-times" />
-                  </button>
-                  <div style={{ marginTop: 8, fontSize: 12, color: "var(--text-gray)" }}>
-                    <i className="fa-solid fa-check-circle" style={{ color: "var(--success)", marginRight: 4 }} />
-                    {designImage?.name}
-                  </div>
-                </div>
-              )}
-            </div>
           </div>
+        </div>
 
-          {/* Right Column: Measurements */}
-          <div className="card">
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-              <div className="form-section-title" style={{ margin: 0 }}>
-                <i className="fa-solid fa-ruler" style={{ marginRight: 8 }} />Measurements
-              </div>
-              <button type="button"
-                className={`btn btn-sm ${showMeasure ? "btn-primary" : "btn-outline"}`}
-                onClick={() => setShowMeasure(!showMeasure)}>
-                {showMeasure
-                  ? <><i className="fa-solid fa-minus" /> Hide</>
-                  : <><i className="fa-solid fa-plus" /> Add Measurements</>
-                }
-              </button>
-            </div>
+        {/* Dynamic Items Container */}
+        <div className="form-section-title" style={{ marginTop: 32 }}>
+            <i className="fa-solid fa-shirt" style={{ marginRight: 8 }} />Clothing Items
+        </div>
+        
+        <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+          {items.map((item, index) => (
+            <div key={index} className="card" style={{ background: "var(--bg-light)", border: "1px solid var(--border)", position: 'relative' }}>
+                <div style={{ position: "absolute", top: 16, right: 16 }}>
+                    {items.length > 1 && (
+                        <button type="button" className="btn btn-danger btn-sm" onClick={() => removeItem(index)}>
+                            <i className="fa-solid fa-times" /> Remove
+                        </button>
+                    )}
+                </div>
+                <h4 style={{ margin: "0 0 16px 0", fontSize: 16, color: "var(--text-dark)" }}>Item #{index + 1}</h4>
+                
+                <div style={{ display: "grid", gridTemplateColumns: "1.5fr 1fr", gap: 24 }}>
+                    {/* Item Details */}
+                    <div>
+                        <div className="form-row">
+                            <div className="form-group">
+                            <label>Cloth Type <span className="required">*</span></label>
+                            <select className="form-control" value={item.clothType} onChange={(e) => handleItemChange(index, "clothType", e.target.value)} required>
+                                <option value="">Select type...</option>
+                                {CLOTH_TYPES.map((t) => <option key={t}>{t}</option>)}
+                            </select>
+                            </div>
 
-            {showMeasure ? (
-              <>
-                <p style={{ fontSize: 13, color: "var(--text-gray)", marginBottom: 14 }}>
-                  Enter measurements in inches. Leave blank if unknown.
-                </p>
-                <div className="measurement-grid">
-                  {MEASUREMENT_FIELDS.map((f) => (
-                    <div className="form-group" key={f.key} style={{ marginBottom: 0 }}>
-                      <label style={{ fontSize: 11 }}>{f.label}</label>
-                      <input
-                        className="form-control"
-                        type="number"
-                        step="0.5"
-                        placeholder="in"
-                        value={measurement[f.key] || ""}
-                        onChange={(e) => setMeasurement({ ...measurement, [f.key]: e.target.value })}
-                        style={{ padding: "7px 10px", fontSize: 13 }}
-                      />
+                            {item.clothType === "Other" && (
+                            <div className="form-group">
+                                <label>Specify Type <span className="required">*</span></label>
+                                <input className="form-control" placeholder="Enter cloth type"
+                                value={item.customClothType} onChange={(e) => handleItemChange(index, "customClothType", e.target.value)} required />
+                            </div>
+                            )}
+                        </div>
+
+                        <div className="form-row">
+                            <div className="form-group">
+                            <label>Fabric Type</label>
+                            <select className="form-control" value={item.fabricType} onChange={(e) => handleItemChange(index, "fabricType", e.target.value)}>
+                                <option value="">Select fabric</option>
+                                {FABRIC_TYPES.map(f => <option key={f} value={f}>{f}</option>)}
+                            </select>
+                            </div>
+                            <div className="form-group">
+                            <label>Color</label>
+                            <input className="form-control" placeholder="e.g. Red" value={item.color} onChange={(e) => handleItemChange(index, "color", e.target.value)} />
+                            </div>
+                        </div>
+
+                        <div className="form-row">
+                            <div className="form-group">
+                                <label>Quantity</label>
+                                <input type="number" min="1" className="form-control" value={item.quantity} onChange={(e) => handleItemChange(index, "quantity", e.target.value)} />
+                            </div>
+                            <div className="form-group">
+                            <label>Price (₹)</label>
+                            <div className="input-icon-wrap">
+                                <i className="input-icon fa-solid fa-indian-rupee-sign" />
+                                <input 
+                                className="form-control" 
+                                type="number" 
+                                value={item.price} 
+                                onChange={(e) => handleItemChange(index, "price", e.target.value)} 
+                                placeholder={item.clothType && ESTIMATED_PRICES[item.clothType] ? `Est: ${ESTIMATED_PRICES[item.clothType]}` : "0"} 
+                                />
+                            </div>
+                            </div>
+                        </div>
+
+                        <div className="form-group" style={{ marginBottom: 0 }}>
+                            <label>Special Instructions</label>
+                            <textarea className="form-control" rows={2}
+                            placeholder="Design instructions..."
+                            value={item.specialInstructions} onChange={(e) => handleItemChange(index, "specialInstructions", e.target.value)} />
+                        </div>
                     </div>
-                  ))}
+
+                    {/* Item Measurements */}
+                    <div style={{ paddingLeft: 24, borderLeft: "1px dashed var(--border)" }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+                            <label style={{ margin: 0, fontWeight: 500, fontSize: 14 }}>
+                                Measurements <span style={{ color: "var(--text-gray)", fontSize: 12 }}>(inches)</span>
+                            </label>
+                            <button type="button"
+                                className={`btn btn-sm ${item.showMeasure ? "btn-primary" : "btn-outline"}`}
+                                onClick={() => handleItemChange(index, "showMeasure", !item.showMeasure)}>
+                                {item.showMeasure ? <><i className="fa-solid fa-minus" /> Hide</> : <><i className="fa-solid fa-plus" /> Add</>}
+                            </button>
+                        </div>
+
+                        {item.showMeasure ? (
+                            <div className="measurement-grid" style={{ gridTemplateColumns: "1fr 1fr", gap: "10px 16px" }}>
+                                {MEASUREMENT_FIELDS.map((f) => (
+                                    <div className="form-group" key={f.key} style={{ marginBottom: 0 }}>
+                                    <label style={{ fontSize: 11 }}>{f.label}</label>
+                                    <input
+                                        className="form-control"
+                                        type="number" step="0.5" placeholder="in"
+                                        value={item.measurement[f.key] || ""}
+                                        onChange={(e) => handleMeasurementChange(index, f.key, e.target.value)}
+                                        style={{ padding: "5px 8px", fontSize: 12 }}
+                                    />
+                                    </div>
+                                ))}
+                            </div>
+                        ) : (
+                            <div className="empty-state" style={{ padding: "20px", marginTop: 20 }}>
+                                <i className="fa-solid fa-ruler" style={{ fontSize: 24 }} />
+                                <p style={{ fontSize: 13, marginTop: 10 }}>Measurements act as optional parameters.</p>
+                            </div>
+                        )}
+                    </div>
                 </div>
-              </>
-            ) : (
-              <div className="empty-state" style={{ padding: "50px 20px" }}>
-                <i className="fa-solid fa-ruler" />
-                <p>Add measurements optionally</p>
-                <small style={{ color: "var(--text-light)", fontSize: 12 }}>
-                  You can also edit measurements later from order details
-                </small>
-              </div>
-            )}
-          </div>
-
+            </div>
+          ))}
         </div>
 
-        <div style={{ marginTop: 24, padding: "16px", background: "#fcf8f5", borderLeft: "4px solid var(--primary)", borderRadius: "4px" }}>
-          <p style={{ margin: 0, color: "var(--primary)", fontWeight: "500", fontSize: 14 }}>
-            <i className="fa-solid fa-circle-info" style={{ marginRight: 8 }}></i>
-            Note: Order completion requires a minimum of 3 days.
-          </p>
-        </div>
+        <button type="button" className="btn btn-outline" onClick={addItem} style={{ marginTop: 20 }}>
+            <i className="fa-solid fa-plus" /> Add Another Item
+        </button>
 
-        <div style={{ display: "flex", justifyContent: "flex-end", gap: 12, marginTop: 20 }}>
+        <div style={{ display: "flex", justifyContent: "flex-end", gap: 12, marginTop: 40, borderTop: "1px solid var(--border)", paddingTop: 20 }}>
           <button type="button" className="btn btn-ghost" onClick={() => navigate("/admin/orders")}>
             Cancel
           </button>
           <button type="submit" className="btn btn-primary btn-lg" disabled={loading}>
-            {loading
-              ? <><i className="fa-solid fa-spinner fa-spin" /> Creating...</>
-              : <><i className="fa-solid fa-plus" /> Create Order</>
-            }
+            {loading ? <><i className="fa-solid fa-spinner fa-spin" /> Creating...</> : <><i className="fa-solid fa-check" /> Create Order With {items.length} Item(s)</>}
           </button>
         </div>
       </form>
