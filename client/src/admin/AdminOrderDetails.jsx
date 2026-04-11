@@ -82,6 +82,9 @@ export default function AdminOrderDetails() {
       const res = await orderAPI.updateStatus(id, { notes, deliveryDate });
       setOrder(res.data.order);
       showMsg("success", `Order updated successfully!`);
+      setTimeout(() => {
+        document.getElementById("order-items-section")?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 100);
     } catch (err) {
       showMsg("error", err.response?.data?.message || "Update failed");
     } finally {
@@ -198,7 +201,7 @@ export default function AdminOrderDetails() {
         </div>
       </div>
 
-      <div className="section-title" style={{ marginTop: 32, marginBottom: 16, fontSize: 18 }}>Order Items</div>
+      <div id="order-items-section" className="section-title" style={{ marginTop: 32, marginBottom: 16, fontSize: 18 }}>Order Items</div>
       
       <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
         {order.items && order.items.map((item, index) => {
