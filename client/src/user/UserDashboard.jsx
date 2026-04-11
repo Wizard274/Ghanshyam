@@ -5,7 +5,7 @@ import { orderAPI } from "../services/api";
 import "../styles/dashboard.css";
 
 const STATUS_STEPS = ["Pending", "Cutting", "Stitching", "Ready", "Delivered"];
-const STEP_ICONS = ["fa-clock", "fa-scissors", "fa-spool", "fa-check-circle", "fa-truck"];
+const STEP_ICONS = ["fa-clock", "fa-scissors", "🧵", "fa-check-circle", "fa-truck"];
 const PIE_COLORS = ["#E65100", "#C4941C", "#1565C0", "#6A1B9A", "#2E7D32"];
 
 function StatusBadge({ status }) {
@@ -52,7 +52,7 @@ export default function UserDashboard() {
   const statCards = [
     { key: "total", icon: "fa-list", label: "Total Orders", value: stats?.total || 0, cls: "total" },
     { key: "pending", icon: "fa-clock", label: "Pending", value: stats?.pending || 0, cls: "pending" },
-    { key: "stitching", icon: "fa-spool", label: "In Progress", value: stats?.stitching || 0, cls: "stitching" },
+    { key: "stitching", icon: "🧵", label: "In Progress", value: stats?.stitching || 0, cls: "stitching" },
     { key: "ready", icon: "fa-check-circle", label: "Ready", value: stats?.ready || 0, cls: "ready" },
     { key: "delivered", icon: "fa-truck", label: "Delivered", value: stats?.delivered || 0, cls: "delivered" },
     { key: "invoices", icon: "fa-file-invoice", label: "Invoices", value: stats?.invoices || 0, cls: "invoices" },
@@ -81,7 +81,9 @@ export default function UserDashboard() {
       <div className="stats-row">
         {statCards.map((s) => (
           <div className={`stat-card ${s.cls}`} key={s.key}>
-            <div className="stat-icon"><i className={`fa-solid ${s.icon}`} /></div>
+            <div className="stat-icon">
+              {s.icon === "🧵" ? <span style={{ fontSize: "20px" }}>🧵</span> : <i className={`fa-solid ${s.icon}`} />}
+            </div>
             <div className="stat-value">{s.value}</div>
             <div className="stat-label">{s.label}</div>
           </div>

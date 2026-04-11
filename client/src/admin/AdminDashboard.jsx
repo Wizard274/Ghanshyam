@@ -37,7 +37,7 @@ export default function AdminDashboard() {
     { icon: "fa-list", label: "Total Orders", value: stats?.total || 0, cls: "total", link: "/admin/orders" },
     { icon: "fa-clock", label: "Pending", value: stats?.pending || 0, cls: "pending", link: "/admin/orders?status=Pending" },
     { icon: "fa-cut", label: "Cutting", value: stats?.cutting || 0, cls: "stitching", link: "/admin/orders?status=Cutting" },
-    { icon: "fa-spool", label: "Stitching", value: stats?.stitching || 0, cls: "ready", link: "/admin/orders?status=Stitching" },
+    { icon: "🧵", label: "Stitching", value: stats?.stitching || 0, cls: "stitching", link: "/admin/orders?status=Stitching" },
     { icon: "fa-check-circle", label: "Ready", value: stats?.ready || 0, cls: "delivered", link: "/admin/orders?status=Ready" },
     { icon: "fa-indian-rupee-sign", label: "Revenue", value: `₹${(invoiceStats.revenue || 0).toLocaleString("en-IN")}`, cls: "invoices", link: "/admin/invoices" },
   ];
@@ -84,7 +84,9 @@ export default function AdminDashboard() {
       <div className="stats-row">
         {statCards.map((s) => (
           <Link key={s.label} to={s.link} className={`stat-card ${s.cls}`} style={{ textDecoration: "none" }}>
-            <div className="stat-icon"><i className={`fa-solid ${s.icon}`} /></div>
+            <div className="stat-icon">
+              {s.icon === "🧵" ? <span style={{ fontSize: "20px" }}>🧵</span> : <i className={`fa-solid ${s.icon}`} />}
+            </div>
             <div className="stat-value">{s.value}</div>
             <div className="stat-label">{s.label}</div>
           </Link>

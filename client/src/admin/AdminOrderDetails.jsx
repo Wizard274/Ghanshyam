@@ -5,10 +5,10 @@ import "../styles/dashboard.css";
 import "../styles/form.css";
 
 const DEFAULT_STATUS_STEPS = ["Pending", "Cutting", "Stitching", "Ready", "Delivered"];
-const DEFAULT_STEP_ICONS = ["fa-clock", "fa-cut", "fa-spool", "fa-check-circle", "fa-truck"];
+const DEFAULT_STEP_ICONS = ["fa-clock", "fa-cut", "🧵", "fa-check-circle", "fa-truck"];
 
 const TAILOR_STATUS_STEPS = ["Measurement Scheduled", "Pending", "Cutting", "Stitching", "Ready", "Delivered"];
-const TAILOR_STEP_ICONS = ["fa-calendar-check", "fa-clock", "fa-cut", "fa-spool", "fa-check-circle", "fa-truck"];
+const TAILOR_STEP_ICONS = ["fa-calendar-check", "fa-clock", "fa-cut", "🧵", "fa-check-circle", "fa-truck"];
 
 const MEASUREMENT_FIELDS = [
   { key: "lambai", label: "Lambai (Length)" }, { key: "shoulder", label: "Shoulder" },
@@ -231,7 +231,13 @@ export default function AdminOrderDetails() {
                 {statusSteps.map((step, i) => (
                   <div key={step} className={`tracker-step ${i < currentStep ? "done" : i === currentStep ? "active" : ""}`}>
                     <div className="tracker-dot">
-                      <i className={`fa-solid ${i < currentStep ? "fa-check" : stepIcons[i]}`} />
+                      {i < currentStep ? (
+                        <i className="fa-solid fa-check" />
+                      ) : stepIcons[i] === "🧵" ? (
+                        <span style={{ fontSize: "16px" }}>🧵</span>
+                      ) : (
+                        <i className={`fa-solid ${stepIcons[i]}`} />
+                      )}
                     </div>
                     <div className="tracker-label">{step}</div>
                   </div>
