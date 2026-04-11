@@ -143,11 +143,51 @@ export default function HomePage() {
                 </div>
               ))}
             </div>
-            <div className="contact-map-placeholder">
-              <i className="fa-solid fa-map-location-dot" />
-              <p>ઘનશ્યામ Ladies Tailor</p>
-              <small>Shop no:-21, Gigev Park, Opposite Uttamnagar, Ratanpark Road, Bapunagar, Ahmedabad., City, Gujarat</small>
-            </div>
+            <a 
+              href="https://maps.app.goo.gl/XZeSgfFq1Z2iLcbY6"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="card contact-map-link"
+              style={{ 
+                padding: 0, 
+                overflow: "hidden", 
+                display: "flex", 
+                flexDirection: "column", 
+                textDecoration: "none", 
+                transition: "transform 0.2s, box-shadow 0.2s" 
+              }}
+              onMouseOver={(e) => {
+                e.currentTarget.style.transform = "translateY(-4px)";
+                e.currentTarget.style.boxShadow = "var(--shadow-md)";
+              }}
+              onMouseOut={(e) => {
+                e.currentTarget.style.transform = "none";
+                e.currentTarget.style.boxShadow = "var(--shadow-sm)";
+              }}
+            >
+              <div style={{ width: "100%", height: "220px", background: "#f0f0f0", position: "relative" }}>
+                <iframe 
+                  title="Ghanshyam Ladies Tailor Location"
+                  src="https://maps.google.com/maps?q=Gigev%20Park,%20Bapunagar,%20Ahmedabad&t=&z=15&ie=UTF8&iwloc=&output=embed" 
+                  style={{ border: 0, width: "100%", height: "100%", pointerEvents: "none" }}
+                  allowFullScreen="" 
+                  loading="lazy" 
+                  referrerPolicy="no-referrer-when-downgrade"
+                ></iframe>
+              </div>
+              <div style={{ padding: "20px" }}>
+                <h3 style={{ margin: "0 0 8px 0", color: "var(--primary)", fontSize: "16px", fontFamily: "var(--font-display)" }}>
+                  <i className="fa-solid fa-map-location-dot" style={{ marginRight: "8px" }}/>
+                  ઘનશ્યામ Ladies Tailor
+                </h3>
+                <p style={{ margin: "0 0 16px 0", color: "var(--text-gray)", fontSize: "13px", lineHeight: "1.5" }}>
+                  Shop no:-21, Gigev Park, Opposite Uttamnagar, Ratanpark Road, Bapunagar, Ahmedabad, Gujarat.
+                </p>
+                <div style={{ color: "var(--text-dark)", fontWeight: "600", fontSize: "13px", display: "flex", alignItems: "center", gap: "6px" }}>
+                  Get directions <i className="fa-solid fa-arrow-right" style={{ color: "var(--primary)" }} />
+                </div>
+              </div>
+            </a>
           </div>
         </div>
       </section>
