@@ -41,22 +41,38 @@ export default function Contact() {
           </div>
 
           {[
-            { icon: "fa-phone", title: "Phone", value: "+91 8160942724", sub: "Mon–Sat, 9AM–8PM" },
+            { icon: "fa-phone", title: "Phone", value: "+91 8160942724", sub: "Mon–Sat, 9AM–8PM", href: "tel:+918160942724" },
             { icon: "fa-location-dot", title: "Address", value: "Shop no:-21, Gigev Park, Opposite Uttamnagar, Ratanpark Road.", sub: " Bapunagar, Ahmedabad." },
-            { icon: "fa-envelope", title: "Email", value: "ghanshyamladiestailor21@gmail.com", sub: "We reply within 24 hours" },
+            { icon: "fa-envelope", title: "Email", value: "ghanshyamladiestailor21@gmail.com", sub: "We reply within 24 hours", href: "https://mail.google.com/mail/?view=cm&to=ghanshyamladiestailor21@gmail.com", external: true },
             { icon: "fa-clock", title: "Working Hours", value: "Monday to Saturday", sub: "9:00 AM – 8:00 PM" },
-          ].map((c) => (
-            <div key={c.title} className="card" style={{ display: "flex", alignItems: "center", gap: 14 }}>
-              <div style={{ width: 44, height: 44, background: "var(--primary)", borderRadius: 12, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                <i className={`fa-solid ${c.icon}`} style={{ color: "#fff", fontSize: 18 }} />
+          ].map((c) => {
+            const CardInner = (
+              <div key={c.href ? undefined : c.title} className="card" style={{ display: "flex", alignItems: "center", gap: 14 }}>
+                <div style={{ width: 44, height: 44, background: "var(--primary)", borderRadius: 12, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                  <i className={`fa-solid ${c.icon}`} style={{ color: "#fff", fontSize: 18 }} />
+                </div>
+                <div>
+                  <div style={{ fontWeight: 600, fontSize: 14 }}>{c.title}</div>
+                  <div style={{ fontSize: 13, color: "var(--text-gray)" }}>{c.value}</div>
+                  <div style={{ fontSize: 12, color: "var(--text-light)" }}>{c.sub}</div>
+                </div>
               </div>
-              <div>
-                <div style={{ fontWeight: 600, fontSize: 14 }}>{c.title}</div>
-                <div style={{ fontSize: 13, color: "var(--text-gray)" }}>{c.value}</div>
-                <div style={{ fontSize: 12, color: "var(--text-light)" }}>{c.sub}</div>
-              </div>
-            </div>
-          ))}
+            );
+
+            return c.href ? (
+              <a
+                key={c.title}
+                href={c.href}
+                target={c.external ? "_blank" : undefined}
+                rel={c.external ? "noopener noreferrer" : undefined}
+                style={{ textDecoration: 'none', color: 'inherit', display: 'block' }}
+              >
+                {CardInner}
+              </a>
+            ) : (
+              CardInner
+            );
+          })}
         </div>
 
         {/* Contact Form */}

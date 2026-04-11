@@ -129,19 +129,35 @@ export default function HomePage() {
           <div className="contact-grid">
             <div className="contact-info-cards">
               {[
-                { icon: "fa-phone", title: "Phone", value: "+91 8160942724" },
+                { icon: "fa-phone", title: "Phone", value: "+91 8160942724", href: "tel:+918160942724" },
                 { icon: "fa-location-dot", title: "Address", value: "Shop no:-21, Gigev Park, Opposite Uttamnagar, Ratanpark Road, Bapunagar, Ahmedabad." },
                 { icon: "fa-clock", title: "Hours", value: "Mon–Sat: 9:00 AM – 8:00 PM" },
-                { icon: "fa-envelope", title: "Email", value: "ghanshyamladiestailor21@gmail.com" },
-              ].map((c, i) => (
-                <div className="contact-card" key={i}>
-                  <div className="contact-card-icon"><i className={`fa-solid ${c.icon}`} /></div>
-                  <div>
-                    <div className="contact-card-title">{c.title}</div>
-                    <div className="contact-card-value">{c.value}</div>
+                { icon: "fa-envelope", title: "Email", value: "ghanshyamladiestailor21@gmail.com", href: "https://mail.google.com/mail/?view=cm&to=ghanshyamladiestailor21@gmail.com", external: true },
+              ].map((c, i) => {
+                const CardInner = (
+                  <div className="contact-card" key={c.href ? undefined : i}>
+                    <div className="contact-card-icon"><i className={`fa-solid ${c.icon}`} /></div>
+                    <div>
+                      <div className="contact-card-title">{c.title}</div>
+                      <div className="contact-card-value">{c.value}</div>
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+
+                return c.href ? (
+                  <a 
+                    key={i} 
+                    href={c.href} 
+                    target={c.external ? "_blank" : undefined} 
+                    rel={c.external ? "noopener noreferrer" : undefined}
+                    style={{ textDecoration: 'none', color: 'inherit', display: 'block' }}
+                  >
+                    {CardInner}
+                  </a>
+                ) : (
+                  CardInner
+                );
+              })}
             </div>
             <a 
               href="https://maps.app.goo.gl/XZeSgfFq1Z2iLcbY6"

@@ -234,7 +234,7 @@
   font-family: var(--font-display);
   font-size: 48px;
   font-weight: 700;
-  color: rgba(139,69,19,0.1);
+  color: rgba(139,69,19,0.45);
   line-height: 1;
   margin-bottom: 12px;
 }
