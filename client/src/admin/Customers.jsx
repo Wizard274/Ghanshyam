@@ -7,26 +7,38 @@ export default function Customers() {
   const navigate = useNavigate();
   const [customers, setCustomers] = useState([]);
   const [loading, setLoading] = useState(true);
+  
   const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [deleting, setDeleting] = useState(false);
   const [msg, setMsg] = useState({ type: "", text: "" });
 
-  useEffect(() => { fetchCustomers(); }, []);
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearch(search);
+      setPage(1);
+    }, 2000);
+    return () => clearTimeout(handler);
+  }, [search]);
 
-  const fetchCustomers = async (q = "") => {
+  useEffect(() => {
+    fetchCustomers(debouncedSearch, page);
+  }, [debouncedSearch, page]);
+
+  const fetchCustomers = async (q = "", p = 1) => {
     setLoading(true);
     try {
-      const res = await userAPI.getAllCustomers({ search: q });
+      const res = await userAPI.getAllCustomers({ search: q, page: p, limit: 7 });
       setCustomers(res.data.customers);
+      setTotalPages(res.data.totalPages || 1);
+      setPage(res.data.currentPage || 1);
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleSearch = (e) => {
-    setSearch(e.target.value);
-    fetchCustomers(e.target.value);
   };
 
   const handleDelete = async (id) => {
@@ -85,7 +97,7 @@ export default function Customers() {
       <div className="filter-bar">
         <div className="search-wrap">
           <i className="search-icon fa-solid fa-search" />
-          <input type="text" placeholder="Search by name, email or phone..." value={search} onChange={handleSearch} />
+          <input type="text" placeholder="Search by name, email or phone..." value={search} onChange={(e) => setSearch(e.target.value)} />
         </div>
       </div>
 
@@ -154,6 +166,30 @@ export default function Customers() {
               </tbody>
             </table>
           </div>
+          
+          {!loading && customers.length > 0 && totalPages > 1 && (
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "16px", borderTop: "1px solid var(--border)" }}>
+              <div style={{ fontSize: 13, color: "var(--text-gray)" }}>
+                Showing page {page} of {totalPages}
+              </div>
+              <div style={{ display: "flex", gap: 8 }}>
+                <button
+                  className="btn btn-outline btn-sm"
+                  disabled={page <= 1}
+                  onClick={() => setPage(p => Math.max(1, p - 1))}
+                >
+                  <i className="fa-solid fa-chevron-left" style={{ marginRight: 6 }} /> Previous
+                </button>
+                <button
+                  className="btn btn-outline btn-sm"
+                  disabled={page >= totalPages}
+                  onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                >
+                  Next <i className="fa-solid fa-chevron-right" style={{ marginLeft: 6 }} />
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>

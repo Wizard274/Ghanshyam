@@ -1,28 +1,22 @@
-const PDFDocument = require("pdfkit");
+   const PDFDocument = require("pdfkit");
 const fs = require("fs");
 
 const generateInvoicePDF = (invoice, order, customer) => {
   return new Promise((resolve, reject) => {
-    // A4 size is 595.28 x 841.89
-    // Margins: top 30, bottom 30, left/right 25
     const doc = new PDFDocument({
       size: "A4",
-      margins: { top: 30, bottom: 30, left: 25, right: 25 },
+      margins: { top: 0, bottom: 0, left: 0, right: 0 },
       autoFirstPage: true,
       bufferPages: true,
     });
     
-    // Prevent auto page breaks
-    doc.on('pageAdded', () => {
-      // we only want 1 page
-    });
+    doc.on('pageAdded', () => {});
 
     const buffers = [];
     doc.on("data", (chunk) => buffers.push(chunk));
     doc.on("end", () => resolve(Buffer.concat(buffers)));
     doc.on("error", reject);
 
-    // Try to load Arial for Rupee symbol support, fallback to Helvetica if missing on system
     let regularFont = "Helvetica";
     let boldFont = "Helvetica-Bold";
     let italicFont = "Helvetica-Oblique";
@@ -34,123 +28,141 @@ const generateInvoicePDF = (invoice, order, customer) => {
     }
 
     const primary = "#8B4513";
-    const lightBg = "#FFF5F0";
+    const palerBg = "#FFF5EE"; // primary-pale
     const textDark = "#1a1a1a";
     const textGray = "#666666";
+    const leftX = 32;
 
-    const drawLine = (y) => {
-      doc.moveTo(25, y).lineTo(570, y).lineWidth(1).strokeColor("#E0E0E0").stroke();
-    };
+    // --- HEADER SECTION (Gradient Background) ---
+    const grad = doc.linearGradient(0, 0, 595, 120);
+    grad.stop(0, "#8B4513").stop(1, "#D2691E");
+    doc.rect(0, 0, 595, 120).fill(grad);
 
     let y = 30;
 
-    // --- HEADER SECTION ---
-    doc.fillColor(primary).font(boldFont).fontSize(24).text("Ghanshyam Ladies Tailor", 25, y);
-    doc.fillColor(textGray).font(italicFont).fontSize(11).text("Precision and Perfection in Every Stitch", 25, y + 28);
+    doc.fillColor("#FFFFFF").font(boldFont).fontSize(20).text("Ghanshyam Ladies Tailor", leftX, y);
+    doc.fillColor("#E0D3C8").font(italicFont).fontSize(12).text("Precision and Perfection in Every Stitch", leftX, y + 24);
+    doc.fillColor("#E0D3C8").font(regularFont).fontSize(10)
+       .text("Phone: +91 81609 42724   ·   Email: ghanshyamladiestailor21@gmail.com", leftX, y + 42)
+       .text("Address: Shop no: 21, Gigev Park, Opposite Uttamnagar, Ratanpark Road, Bapunagar.", leftX, y + 54);
+
+    // Right Header Text
+    doc.fillColor("#E0D3C8").font(regularFont).fontSize(10).text("INVOICE", 400, y - 2, { align: "right", width: 160 });
+    doc.fillColor("#FFFFFF").font(boldFont).fontSize(22).text(invoice.invoiceNumber, 400, y + 10, { align: "right", width: 160 });
+    doc.fillColor("#E0D3C8").font(regularFont).fontSize(11)
+       .text(new Date(invoice.createdAt).toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" }), 400, y + 38, { align: "right", width: 160 });
+
+    y = 150;
+
+    // --- META INFO ROW (Bill To / Invoice Details) ---
+    // Bill To Box
+    doc.rect(leftX, y, 255, 120).fillAndStroke(palerBg, palerBg);
+    doc.fillColor(primary).font(boldFont).fontSize(11).text("BILL TO", leftX + 16, y + 16);
+    doc.fillColor(textDark).font(boldFont).fontSize(14).text(customer.name, leftX + 16, y + 36);
+    doc.fillColor(textGray).font(regularFont).fontSize(11)
+       .text(customer.email, leftX + 16, y + 56)
+       .text(customer.phone, leftX + 16, y + 70)
+       .text(customer.address || "N/A", leftX + 16, y + 84, { width: 220, height: 26, ellipsis: true });
+
+    // Invoice Details Box
+    doc.rect(leftX + 275, y, 255, 120).fillAndStroke(palerBg, palerBg);
+    doc.fillColor(primary).font(boldFont).fontSize(11).text("INVOICE DETAILS", leftX + 275 + 16, y + 16);
     
-    // INVOICE text on right
-    doc.fillColor(primary).font(boldFont).fontSize(28).text("INVOICE", 400, y, { align: "right", width: 170 });
-    doc.fillColor(textDark).font(regularFont).fontSize(11).text(invoice.invoiceNumber, 400, y + 32, { align: "right", width: 170 });
-
-    y += 55;
-    doc.fillColor(textDark).font(regularFont).fontSize(10)
-       .text("Phone: +91 8160942724", 25, y)
-       .text("Email: ghanshyamladiestailor21@gmail.com", 25, y + 14)
-       .text("Address: Shop no: 21, Gigev Park, Opposite Uttamnagar, Ratanpark Road, Bapunagar, Ahmedabad", 25, y + 28, { width: 330 });
-
-    y += 65;
-    drawLine(y);
-    y += 15;
-
-    // --- CUSTOMER & INVOICE DETAILS SECTION ---
-    doc.fillColor(primary).font(boldFont).fontSize(11).text("BILL TO", 25, y);
-    doc.fillColor(textDark).font(boldFont).fontSize(12).text(customer.name, 25, y + 16);
-    doc.fillColor(textGray).font(regularFont).fontSize(10)
-       .text(`Email: ${customer.email}`, 25, y + 32)
-       .text(`Phone: ${customer.phone}`, 25, y + 46)
-       .text(`Address: ${customer.address || "N/A"}`, 25, y + 60, { width: 250 });
-
-    doc.fillColor(primary).font(boldFont).fontSize(11).text("INVOICE DETAILS", 350, y);
-    doc.fillColor(textGray).font(regularFont).fontSize(10)
-       .text("Invoice No:", 350, y + 16)
-       .text("Order No:", 350, y + 30)
-       .text("Cloth Type:", 350, y + 44)
-       .text("Date:", 350, y + 58)
-       .text("Payment:", 350, y + 72)
-       .text("Method:", 350, y + 86);
-
-    doc.fillColor(textDark).font(boldFont).fontSize(10)
-       .text(invoice.invoiceNumber, 430, y + 16)
-       .text(order.orderNumber, 430, y + 30)
-       .text(order.clothType || "Mixed", 430, y + 44)
-       .text(new Date(invoice.createdAt).toLocaleDateString("en-IN"), 430, y + 58)
-       .text(invoice.paymentStatus, 430, y + 72)
-       .text(invoice.paymentMethod, 430, y + 86);
-
-    y += 115;
+    const rStartX = leftX + 275 + 16;
+    const rValX = rStartX + 80;
+    doc.fillColor(textGray).font(regularFont).fontSize(11)
+       .text("Invoice No.", rStartX, y + 36)
+       .text("Order No.", rStartX, y + 50)
+       .text("Cloth Type", rStartX, y + 64)
+       .text("Payment", rStartX, y + 78)
+       .text("Date", rStartX, y + 92);
+       
+    doc.fillColor(textDark).font(boldFont).fontSize(11)
+       .text(invoice.invoiceNumber, rValX, y + 36)
+       .text(order.orderNumber, rValX, y + 50)
+       .text(order.clothType || "Mixed", rValX, y + 64)
+       .text(`${invoice.paymentStatus} (${invoice.paymentMethod})`, rValX, y + 78)
+       .text(new Date(invoice.createdAt).toLocaleDateString("en-IN"), rValX, y + 92);
+       
+    y += 150;
 
     // --- TABLE SECTION ---
-    doc.rect(25, y, 545, 30).fill(primary);
-    doc.fillColor("#FFFFFF").font(boldFont).fontSize(10)
-       .text("#", 35, y + 10)
-       .text("DESCRIPTION", 60, y + 10)
-       .text("QTY", 380, y + 10, { width: 40, align: "center" })
-       .text("PRICE", 440, y + 10, { width: 50, align: "right" })
-       .text("AMOUNT", 500, y + 10, { width: 60, align: "right" });
+    doc.rect(leftX, y, 530, 32).fill(primary);
+    doc.fillColor("#FFFFFF").font(boldFont).fontSize(11)
+       .text("#", leftX + 12, y + 10)
+       .text("Description", leftX + 40, y + 10)
+       .text("Qty", 360, y + 10, { width: 40, align: "center" })
+       .text("Price", 420, y + 10, { width: 60, align: "right" })
+       .text("Amount", 490, y + 10, { width: 60, align: "right" });
        
-    y += 30;
+    y += 32;
 
-    // Table rows
     invoice.items.forEach((item, i) => {
-      const bg = i % 2 === 0 ? "#FFFFFF" : "#F9F9F9";
-      doc.rect(25, y, 545, 28).fill(bg);
-      doc.fillColor(textDark).font(regularFont).fontSize(10)
-         .text((i + 1).toString(), 35, y + 9)
-         .font(boldFont).text(item.name, 60, y + 9)
-         .font(regularFont).text(item.quantity.toString(), 380, y + 9, { width: 40, align: "center" })
-         .text(`₹${item.price.toFixed(2)}`, 440, y + 9, { width: 50, align: "right" })
-         .font(boldFont).text(`₹${(item.price * item.quantity).toFixed(2)}`, 500, y + 9, { width: 60, align: "right" });
-         
-      if (item.description) {
-         doc.font(regularFont).fontSize(9).fillColor(textGray).text(item.description, 60, y + 21);
-         y += 12; // accommodate extra description line
-      }
-      y += 28;
-    });
-
-    doc.rect(25, y, 545, 1).fill("#E0E0E0");
-    y += 15;
-
-    // --- TOTAL SECTION ---
-    const totalsX = 380;
-
-    const addTotalRow = (label, value, isBold = false, isDanger = false) => {
-      doc.fillColor(isDanger ? "#dc3545" : (isBold ? textDark : textGray)).font(isBold ? boldFont : regularFont).fontSize(isBold ? 12 : 10)
-         .text(label, totalsX, y, { width: 80, align: "left" })
-         .text(value, totalsX + 80, y, { width: 100, align: "right" });
-      y += isBold ? 24 : 18;
-    };
-
-    addTotalRow("Subtotal", `₹${invoice.subtotal.toFixed(2)}`);
-    if (invoice.discount > 0) addTotalRow("Discount", `-₹${invoice.discount.toFixed(2)}`, false, true);
-    if (invoice.tax > 0) addTotalRow("Tax", `₹${invoice.tax.toFixed(2)}`);
-    
-    y += 4;
-    doc.fillColor(primary).font(boldFont).fontSize(12)
-       .text("Total", totalsX, y, { width: 100, align: "left" })
-       .text(`₹${invoice.totalAmount.toFixed(2)}`, totalsX + 100, y, { width: 80, align: "right" });
+       const bg = i % 2 === 0 ? "#FFFFFF" : "#FAFAFA";
+       const rowH = item.description ? 44 : 32;
+       doc.rect(leftX, y, 530, rowH).fill(bg);
        
-    // --- FOOTER SECTION ---
-    // Fix positioning at bottom
-    const footerY = 770;
+       doc.fillColor(textGray).font(regularFont).fontSize(11).text(`${i + 1}`, leftX + 12, y + 10);
+       doc.fillColor(textDark).font(boldFont).fontSize(11).text(item.name, leftX + 40, y + 10);
+       
+       if (item.description) {
+           doc.fillColor(textGray).font(regularFont).fontSize(10).text(item.description, leftX + 40, y + 24);
+       }
+       
+       doc.fillColor(textDark).font(regularFont).fontSize(11)
+          .text(item.quantity.toString(), 360, y + 10, { width: 40, align: "center" })
+          .text(`₹${item.price.toFixed(2)}`, 420, y + 10, { width: 60, align: "right" });
+          
+       doc.font(boldFont).text(`₹${(item.price * item.quantity).toFixed(2)}`, 490, y + 10, { width: 60, align: "right" });
+       
+       y += rowH;
+    });
     
-    // Colored bottom bar
-    doc.fillColor(textGray).font(regularFont).fontSize(10)
-       .text("Thank you for choosing Ghanshyam Ladies Tailor! · Precision and Perfection in Every Stitch", 25, footerY, { align: "center", width: 545 });
+    // Bottom border
+    doc.rect(leftX, y, 530, 1).fill("#EEEEEE");
+    y += 24;
 
+    // --- TOTALS SECTION ---
+    const totX = leftX + 275;
+    
+    doc.fillColor(textGray).font(regularFont).fontSize(12)
+       .text("Subtotal", totX, y, { width: 140, align: "left" })
+       .text(`₹${invoice.subtotal.toFixed(2)}`, totX + 140, y, { width: 100, align: "right" });
+    y += 24;
+    
+    if (invoice.discount > 0) {
+        doc.fillColor("#dc3545").text("Discount", totX, y, { width: 140, align: "left" })
+           .text(`-₹${invoice.discount.toFixed(2)}`, totX + 140, y, { width: 100, align: "right" });
+        y += 24;
+    }
+    
+    if (invoice.tax > 0) {
+        doc.fillColor(textGray).text("Tax", totX, y, { width: 140, align: "left" })
+           .text(`₹${invoice.tax.toFixed(2)}`, totX + 140, y, { width: 100, align: "right" });
+        y += 24;
+    }
+    
+    doc.rect(totX, y, 255, 42).fill(primary);
+    doc.fillColor("#FFFFFF").font(boldFont).fontSize(14)
+       .text("Total", totX + 16, y + 14, { width: 120, align: "left" })
+       .text(`₹${invoice.totalAmount.toFixed(2)}`, totX + 120, y + 14, { width: 115, align: "right" });
+    
+    y += 64;
+
+    // --- NOTES & FOOTER ---
+    if (invoice.notes) {
+        doc.rect(leftX, y, 530, 36).fill(palerBg);
+        doc.fillColor(textGray).font(italicFont).fontSize(11)
+           .text(`Note: ${invoice.notes}`, leftX + 16, y + 12);
+    }
+
+    doc.fillColor(textGray).font(italicFont).fontSize(11)
+       .text("Thank you for choosing Ghanshyam Ladies Tailor!", leftX, 790, { align: "center", width: 530 });
 
     doc.end();
   });
 };
 
 module.exports = { generateInvoicePDF };
+
+// touch

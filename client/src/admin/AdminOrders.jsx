@@ -12,7 +12,10 @@ export default function AdminOrders() {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [status, setStatus] = useState("All");
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
   const [customerFilter, setCustomerFilter] = useState(null); // { id, name }
   const [deleteConfirm, setDeleteConfirm] = useState(null); // order object
   const [deleting, setDeleting] = useState(false);
@@ -20,24 +23,37 @@ export default function AdminOrders() {
   const [searchParams] = useSearchParams();
 
   useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearch(search);
+      setPage(1);
+    }, 2000);
+    return () => clearTimeout(handler);
+  }, [search]);
+
+  useEffect(() => {
     const s = searchParams.get("status");
     const uid = searchParams.get("userId");
     const uname = searchParams.get("customerName");
     if (s) setStatus(s);
     if (uid) setCustomerFilter({ id: uid, name: decodeURIComponent(uname || "") });
-    fetchItems(search, s || "All", uid || null);
   }, []);
 
-  const fetchItems = async (q = "", s = "All", uid = null) => {
+  useEffect(() => {
+    fetchItems(debouncedSearch, status, customerFilter?.id || null, page);
+  }, [debouncedSearch, status, customerFilter, page]);
+
+  const fetchItems = async (q = "", s = "All", uid = null, p = 1) => {
     setLoading(true);
     try {
-      const params = {};
+      const params = { page: p, limit: 7 };
       if (q) params.search = q;
       if (s && s !== "All") params.status = s;
       if (uid) params.userId = uid;
       
       const res = await orderAPI.getAllItems(params);
       setItems(res.data.items);
+      setTotalPages(res.data.totalPages || 1);
+      setPage(res.data.currentPage || 1);
     } finally {
       setLoading(false);
     }
@@ -45,18 +61,17 @@ export default function AdminOrders() {
 
   const clearCustomerFilter = () => {
     setCustomerFilter(null);
-    fetchItems(search, status, null);
+    setPage(1);
     navigate("/admin/orders", { replace: true });
   };
 
   const handleSearch = (e) => {
     setSearch(e.target.value);
-    fetchItems(e.target.value, status, customerFilter?.id || null);
   };
 
   const handleStatus = (s) => {
     setStatus(s);
-    fetchItems(search, s, customerFilter?.id || null);
+    setPage(1);
   };
 
   const handleDelete = async (orderId) => {
@@ -202,6 +217,30 @@ export default function AdminOrders() {
                 ))}
               </tbody>
             </table>
+          </div>
+        </div>
+      )}
+
+      {!loading && items.length > 0 && totalPages > 1 && (
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 24 }}>
+          <div style={{ fontSize: 13, color: "var(--text-gray)" }}>
+            Showing page {page} of {totalPages}
+          </div>
+          <div style={{ display: "flex", gap: 8 }}>
+            <button
+              className="btn btn-outline btn-sm"
+              disabled={page <= 1}
+              onClick={() => setPage(p => Math.max(1, p - 1))}
+            >
+              <i className="fa-solid fa-chevron-left" style={{ marginRight: 6 }} /> Previous
+            </button>
+            <button
+              className="btn btn-outline btn-sm"
+              disabled={page >= totalPages}
+              onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+            >
+              Next <i className="fa-solid fa-chevron-right" style={{ marginLeft: 6 }} />
+            </button>
           </div>
         </div>
       )}

@@ -195,7 +195,6 @@ export default function AdminInvoiceDetails() {
 
           <div className="invoice-footer-note">
             Thank you for choosing ઘનશ્યામ Ladies Tailor!<br />
-            <span style={{ fontSize: 12 }}>This is a computer-generated invoice. No signature required.</span>
           </div>
         </div>
       </div>

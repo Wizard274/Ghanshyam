@@ -74,7 +74,7 @@ export const appointmentAPI = {
   generateSlots: (data) => API.post("/appointments/generate-slots", data),
   getAdminSlots: (date) => API.get(`/appointments/admin-slots${date ? `?date=${date}` : ""}`),
   deleteSlot: (id) => API.delete(`/appointments/slots/${id}`),
-  getAll: () => API.get("/appointments/all"),
+  getAll: (params) => API.get("/appointments/all", { params }),
 };
 
 export default API;

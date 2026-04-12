@@ -134,12 +134,33 @@ const deleteSlot = async (req, res) => {
 // Admin: Get all appointments
 const getAllAppointments = async (req, res) => {
     try {
-        const appointments = await Appointment.find()
+        const { search, page = 1, limit = 7 } = req.query;
+        let query = {};
+        
+        if (search) {
+            const s = search.toLowerCase();
+            const User = require("../models/userModel");
+            const users = await User.find({ name: { $regex: s, $options: "i" } }, "_id");
+            const userIds = users.map(u => u._id);
+            query.userId = { $in: userIds };
+        }
+
+        const parsedPage = parseInt(page);
+        const parsedLimit = parseInt(limit);
+        const skip = (parsedPage - 1) * parsedLimit;
+
+        const totalAppointments = await Appointment.countDocuments(query);
+        const totalPages = Math.ceil(totalAppointments / parsedLimit) || 1;
+
+        const appointments = await Appointment.find(query)
             .populate("userId", "name email phone")
             .populate({ path: "orderId", select: "orderNumber status clothType" })
             .populate("slotId")
-            .sort({ date: 1, time: 1 });
-        res.json({ success: true, appointments });
+            .sort({ date: -1, time: -1 })
+            .skip(skip)
+            .limit(parsedLimit);
+            
+        res.json({ success: true, appointments, totalPages, currentPage: parsedPage });
     } catch (err) {
         res.status(500).json({ success: false, message: "Server error" });
     }

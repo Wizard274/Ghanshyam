@@ -40,15 +40,23 @@ const changePassword = async (req, res) => {
 
 const getAllCustomers = async (req, res) => {
   try {
-    const { search } = req.query;
+    const { search, page = 1, limit = 7 } = req.query;
     let query = { role: "user" };
     if (search) query.$or = [
       { name: { $regex: search, $options: "i" } },
       { email: { $regex: search, $options: "i" } },
       { phone: { $regex: search, $options: "i" } }
     ];
-    const customers = await User.find(query).select("-password").sort({ createdAt: -1 });
-    res.json({ success: true, customers });
+    
+    const parsedPage = parseInt(page);
+    const parsedLimit = parseInt(limit);
+    const skip = (parsedPage - 1) * parsedLimit;
+    
+    const totalCustomers = await User.countDocuments(query);
+    const totalPages = Math.ceil(totalCustomers / parsedLimit) || 1;
+    
+    const customers = await User.find(query).select("-password").sort({ createdAt: -1 }).skip(skip).limit(parsedLimit);
+    res.json({ success: true, customers, totalPages, currentPage: parsedPage });
   } catch (err) {
     res.status(500).json({ success: false, message: "Server error" });
   }

@@ -7,19 +7,34 @@ export default function AdminInvoices() {
   const [invoices, setInvoices] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [status, setStatus] = useState("All");
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
 
-  const fetchInvoices = async (q = "", s = "All") => {
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearch(search);
+      setPage(1);
+    }, 2000);
+    return () => clearTimeout(handler);
+  }, [search]);
+
+  useEffect(() => {
+    fetchInvoices(debouncedSearch, status, page);
+  }, [debouncedSearch, status, page]);
+
+  const fetchInvoices = async (q = "", s = "All", p = 1) => {
     setLoading(true);
     try {
-      const res = await invoiceAPI.getAll({ search: q, status: s !== "All" ? s : undefined });
+      const res = await invoiceAPI.getAll({ search: q, status: s !== "All" ? s : undefined, page: p, limit: 7 });
       setInvoices(res.data.invoices);
+      setTotalPages(res.data.totalPages || 1);
+      setPage(res.data.currentPage || 1);
     } finally {
       setLoading(false);
     }
   };
-
-  useEffect(() => { fetchInvoices(); }, []);
 
   const handleDownload = async (id, number) => {
     try {
@@ -37,7 +52,7 @@ export default function AdminInvoices() {
   const handleUpdatePayment = async (id, paymentStatus) => {
     try {
       await invoiceAPI.updatePayment(id, { paymentStatus });
-      fetchInvoices(search, status);
+      fetchInvoices(debouncedSearch, status, page);
     } catch { alert("Update failed"); }
   };
 
@@ -57,9 +72,9 @@ export default function AdminInvoices() {
         <div className="search-wrap">
           <i className="search-icon fa-solid fa-search" />
           <input type="text" placeholder="Search by customer or invoice number..." value={search}
-            onChange={(e) => { setSearch(e.target.value); fetchInvoices(e.target.value, status); }} />
+            onChange={(e) => setSearch(e.target.value)} />
         </div>
-        <select value={status} onChange={(e) => { setStatus(e.target.value); fetchInvoices(search, e.target.value); }}>
+        <select value={status} onChange={(e) => { setStatus(e.target.value); setPage(1); }}>
           <option value="All">All Payments</option>
           <option>Pending</option><option>Paid</option><option>Partial</option>
         </select>
@@ -128,6 +143,30 @@ export default function AdminInvoices() {
                 ))}
               </tbody>
             </table>
+          </div>
+        </div>
+      )}
+
+      {!loading && invoices.length > 0 && totalPages > 1 && (
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 24 }}>
+          <div style={{ fontSize: 13, color: "var(--text-gray)" }}>
+            Showing page {page} of {totalPages}
+          </div>
+          <div style={{ display: "flex", gap: 8 }}>
+            <button
+              className="btn btn-outline btn-sm"
+              disabled={page <= 1}
+              onClick={() => setPage(p => Math.max(1, p - 1))}
+            >
+              <i className="fa-solid fa-chevron-left" style={{ marginRight: 6 }} /> Previous
+            </button>
+            <button
+              className="btn btn-outline btn-sm"
+              disabled={page >= totalPages}
+              onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+            >
+              Next <i className="fa-solid fa-chevron-right" style={{ marginLeft: 6 }} />
+            </button>
           </div>
         </div>
       )}

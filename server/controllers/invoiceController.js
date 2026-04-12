@@ -48,20 +48,36 @@ const getInvoiceById = async (req, res) => {
 // Get all invoices (admin)
 const getAllInvoices = async (req, res) => {
   try {
-    const { search, status } = req.query;
-    let invoices = await Invoice.find(status && status !== "All" ? { paymentStatus: status } : {})
-      .populate("orderId", "orderNumber clothType")
-      .populate("customerId", "name email phone")
-      .sort({ createdAt: -1 });
+    const { search, status, page = 1, limit = 7 } = req.query;
+    let query = {};
+    if (status && status !== "All") query.paymentStatus = status;
 
     if (search) {
       const s = search.toLowerCase();
-      invoices = invoices.filter(i =>
-        i.customerId?.name?.toLowerCase().includes(s) ||
-        i.invoiceNumber?.toLowerCase().includes(s)
-      );
+      const users = await User.find({ name: { $regex: s, $options: "i" } }, "_id");
+      const userIds = users.map(u => u._id);
+      
+      query.$or = [
+        { customerId: { $in: userIds } },
+        { invoiceNumber: { $regex: s, $options: "i" } }
+      ];
     }
-    res.json({ success: true, invoices });
+    
+    const parsedPage = parseInt(page);
+    const parsedLimit = parseInt(limit);
+    const skip = (parsedPage - 1) * parsedLimit;
+    
+    const totalInvoices = await Invoice.countDocuments(query);
+    const totalPages = Math.ceil(totalInvoices / parsedLimit) || 1;
+
+    const invoices = await Invoice.find(query)
+      .populate("orderId", "orderNumber clothType")
+      .populate("customerId", "name email phone")
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(parsedLimit);
+
+    res.json({ success: true, invoices, totalPages, currentPage: parsedPage });
   } catch (err) {
     res.status(500).json({ success: false, message: "Server error" });
   }

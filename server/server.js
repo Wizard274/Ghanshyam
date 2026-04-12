@@ -34,3 +34,5 @@ mongoose
     });
   })
   .catch((err) => console.error("❌ MongoDB Error:", err));
+
+// touch for nodemon restart

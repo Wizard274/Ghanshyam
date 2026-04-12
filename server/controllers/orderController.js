@@ -238,28 +238,54 @@ const getAllOrders = async (req, res) => {
 
 const getAllItems = async (req, res) => {
   try {
-    const { status, search, userId } = req.query;
+    const { status, search, userId, page = 1, limit = 7 } = req.query;
     let query = {};
     if (status && status !== "All") query.status = status;
     
-    let items = await OrderItem.find(query).populate({
-        path: "orderId",
-        populate: { path: "userId", select: "name email phone" }
-    }).sort({ createdAt: -1 }).lean();
-    
     if (userId) {
-        items = items.filter(item => item.orderId?.userId?._id?.toString() === userId);
+      const orders = await Order.find({ userId }, "_id");
+      query.orderId = { $in: orders.map(o => o._id) };
     }
 
     if (search) {
-      const s = search.toLowerCase();
-      items = items.filter(i => 
-        i.orderId?.userId?.name?.toLowerCase().includes(s) ||
-        i.orderId?.orderNumber?.toLowerCase().includes(s)
-      );
+      const users = await User.find({ name: { $regex: search, $options: "i" } }, "_id");
+      const userIds = users.map(u => u._id);
+      
+      const orderDocs = await Order.find({
+        $or: [
+          { userId: { $in: userIds } },
+          { orderNumber: { $regex: search, $options: "i" } }
+        ]
+      }, "_id");
+      
+      const orderIds = orderDocs.map(o => o._id);
+      
+      if (query.orderId) {
+        const existingIds = query.orderId.$in.map(id => id.toString());
+        query.orderId = { $in: orderIds.filter(id => existingIds.includes(id.toString())) };
+      } else {
+        query.orderId = { $in: orderIds };
+      }
     }
 
-    res.json({ success: true, items });
+    const parsedPage = parseInt(page);
+    const parsedLimit = parseInt(limit);
+    const skip = (parsedPage - 1) * parsedLimit;
+
+    const totalItems = await OrderItem.countDocuments(query);
+    const totalPages = Math.ceil(totalItems / parsedLimit) || 1;
+
+    let items = await OrderItem.find(query)
+      .populate({
+        path: "orderId",
+        populate: { path: "userId", select: "name email phone" }
+      })
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(parsedLimit)
+      .lean();
+
+    res.json({ success: true, items, orders: items, totalPages, currentPage: parsedPage });
   } catch(err) {
     res.status(500).json({ success: false, message: "Server error" });
   }

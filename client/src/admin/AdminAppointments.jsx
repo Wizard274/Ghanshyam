@@ -8,14 +8,39 @@ export default function AdminAppointments() {
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState("appointments"); // "appointments" or "slots"
 
+  // Appointments Pagination
+  const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearch(search);
+      setPage(1);
+    }, 2000);
+    return () => clearTimeout(handler);
+  }, [search]);
+
   // Generate Slots Form state
   const [form, setForm] = useState({ date: "", startTime: "10:00 AM", endTime: "06:00 PM", intervalMinutes: 30, capacity: 1 });
   const [generating, setGenerating] = useState(false);
   const [msg, setMsg] = useState("");
 
-  const fetchAppointments = () => {
-    appointmentAPI.getAll().then((res) => {
+  useEffect(() => {
+    if (tab === "appointments") {
+      fetchAppointments(debouncedSearch, page);
+    } else {
+      fetchSlots();
+    }
+  }, [debouncedSearch, page, tab]);
+
+  const fetchAppointments = (q = "", p = 1) => {
+    setLoading(true);
+    appointmentAPI.getAll({ search: q, page: p, limit: 7 }).then((res) => {
       setAppointments(res.data.appointments);
+      setTotalPages(res.data.totalPages || 1);
+      setPage(res.data.currentPage || 1);
     }).finally(() => setLoading(false));
   };
 
@@ -25,10 +50,6 @@ export default function AdminAppointments() {
     });
   };
 
-  useEffect(() => {
-    fetchAppointments();
-    fetchSlots();
-  }, []);
 
   const handleGenerate = async (e) => {
       e.preventDefault();
@@ -80,6 +101,13 @@ export default function AdminAppointments() {
 
       {tab === "appointments" && (
           <div className="card" style={{ padding: 0, overflow: "hidden" }}>
+              <div className="filter-bar" style={{ padding: "16px", borderBottom: "1px solid var(--border)" }}>
+                  <div className="search-wrap" style={{ margin: 0, flex: 1 }}>
+                      <i className="search-icon fa-solid fa-search" />
+                      <input type="text" placeholder="Search by customer name..." value={search}
+                          onChange={(e) => setSearch(e.target.value)} />
+                  </div>
+              </div>
               <div className="table-wrap">
                   <table>
                       <thead>
@@ -126,6 +154,30 @@ export default function AdminAppointments() {
                       </tbody>
                   </table>
               </div>
+              
+              {!loading && appointments.length > 0 && totalPages > 1 && (
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "16px", borderTop: "1px solid var(--border)" }}>
+                      <div style={{ fontSize: 13, color: "var(--text-gray)" }}>
+                          Showing page {page} of {totalPages}
+                      </div>
+                      <div style={{ display: "flex", gap: 8 }}>
+                          <button
+                              className="btn btn-outline btn-sm"
+                              disabled={page <= 1}
+                              onClick={() => setPage(p => Math.max(1, p - 1))}
+                          >
+                              <i className="fa-solid fa-chevron-left" style={{ marginRight: 6 }} /> Previous
+                          </button>
+                          <button
+                              className="btn btn-outline btn-sm"
+                              disabled={page >= totalPages}
+                              onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                          >
+                              Next <i className="fa-solid fa-chevron-right" style={{ marginLeft: 6 }} />
+                          </button>
+                      </div>
+                  </div>
+              )}
           </div>
       )}
 
