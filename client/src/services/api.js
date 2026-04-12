@@ -59,6 +59,7 @@ export const userAPI = {
   changePassword: (data) => API.put("/users/change-password", data),
   getAllCustomers: (params) => API.get("/users/customers", { params }),
   getCustomerById: (id) => API.get(`/users/customers/${id}`),
+  createCustomer: (data) => API.post("/users/customers", data),
   deleteCustomer: (id) => API.delete(`/users/customers/${id}`),
 };
 

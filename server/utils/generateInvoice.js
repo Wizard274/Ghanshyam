@@ -63,7 +63,6 @@ const generateInvoicePDF = (invoice, order, customer) => {
     y += 15;
 
     // --- CUSTOMER & INVOICE DETAILS SECTION ---
-    // Bill to
     doc.fillColor(primary).font(boldFont).fontSize(11).text("BILL TO", 25, y);
     doc.fillColor(textDark).font(boldFont).fontSize(12).text(customer.name, 25, y + 16);
     doc.fillColor(textGray).font(regularFont).fontSize(10)
@@ -71,50 +70,31 @@ const generateInvoicePDF = (invoice, order, customer) => {
        .text(`Phone: ${customer.phone}`, 25, y + 46)
        .text(`Address: ${customer.address || "N/A"}`, 25, y + 60, { width: 250 });
 
-    // Invoice details right aligned block
     doc.fillColor(primary).font(boldFont).fontSize(11).text("INVOICE DETAILS", 350, y);
     doc.fillColor(textGray).font(regularFont).fontSize(10)
        .text("Invoice No:", 350, y + 16)
-       .text("Order No:", 350, y + 32)
-       .text("Date:", 350, y + 46)
-       .text("Payment Status:", 350, y + 60);
+       .text("Order No:", 350, y + 30)
+       .text("Cloth Type:", 350, y + 44)
+       .text("Date:", 350, y + 58)
+       .text("Payment:", 350, y + 72)
+       .text("Method:", 350, y + 86);
 
     doc.fillColor(textDark).font(boldFont).fontSize(10)
-       .text(invoice.invoiceNumber, 450, y + 16)
-       .text(order.orderNumber, 450, y + 32)
-       .text(new Date(invoice.createdAt).toLocaleDateString("en-IN"), 450, y + 46)
-       .text(invoice.paymentStatus, 450, y + 60);
+       .text(invoice.invoiceNumber, 430, y + 16)
+       .text(order.orderNumber, 430, y + 30)
+       .text(order.clothType || "Mixed", 430, y + 44)
+       .text(new Date(invoice.createdAt).toLocaleDateString("en-IN"), 430, y + 58)
+       .text(invoice.paymentStatus, 430, y + 72)
+       .text(invoice.paymentMethod, 430, y + 86);
 
-    y += 85;
-    drawLine(y);
-    y += 15;
-
-    // --- ORDER DETAILS SECTION ---
-    doc.fillColor(primary).font(boldFont).fontSize(11).text("ORDER DETAILS", 25, y);
-    y += 18;
-    
-    doc.roundedRect(25, y, 545, 45, 6).fill(lightBg);
-    
-    // Consolidating Order Details
-    doc.fillColor(textGray).font(boldFont).fontSize(10)
-       .text("Total Items Processed", 40, y + 10)
-       .text("Measurement Setup", 180, y + 10)
-       .text("Measurement Status", 320, y + 10)
-       .text("Delivery Date", 430, y + 10);
-       
-    doc.fillColor(textDark).font(regularFont).fontSize(10)
-       .text(invoice.items.length.toString(), 40, y + 25)
-       .text(order.measurementType === "tailor" ? "Walk-In" : "Self-Submitted", 180, y + 25)
-       .text(order.measurementType === "tailor" ? "Retained on File" : "Captured", 320, y + 25)
-       .text(order.deliveryDate ? new Date(order.deliveryDate).toLocaleDateString("en-IN") : "N/A", 430, y + 25);
-
-    y += 65;
+    y += 115;
 
     // --- TABLE SECTION ---
     doc.rect(25, y, 545, 30).fill(primary);
     doc.fillColor("#FFFFFF").font(boldFont).fontSize(10)
-       .text("DESCRIPTION", 40, y + 10)
-       .text("QTY", 380, y + 10, { width: 40, align: "right" })
+       .text("#", 35, y + 10)
+       .text("DESCRIPTION", 60, y + 10)
+       .text("QTY", 380, y + 10, { width: 40, align: "center" })
        .text("PRICE", 440, y + 10, { width: 50, align: "right" })
        .text("AMOUNT", 500, y + 10, { width: 60, align: "right" });
        
@@ -125,10 +105,16 @@ const generateInvoicePDF = (invoice, order, customer) => {
       const bg = i % 2 === 0 ? "#FFFFFF" : "#F9F9F9";
       doc.rect(25, y, 545, 28).fill(bg);
       doc.fillColor(textDark).font(regularFont).fontSize(10)
-         .text(item.name, 40, y + 9, { width: 330 })
-         .text(item.quantity.toString(), 380, y + 9, { width: 40, align: "right" })
+         .text((i + 1).toString(), 35, y + 9)
+         .font(boldFont).text(item.name, 60, y + 9)
+         .font(regularFont).text(item.quantity.toString(), 380, y + 9, { width: 40, align: "center" })
          .text(`₹${item.price.toFixed(2)}`, 440, y + 9, { width: 50, align: "right" })
-         .text(`₹${(item.price * item.quantity).toFixed(2)}`, 500, y + 9, { width: 60, align: "right" });
+         .font(boldFont).text(`₹${(item.price * item.quantity).toFixed(2)}`, 500, y + 9, { width: 60, align: "right" });
+         
+      if (item.description) {
+         doc.font(regularFont).fontSize(9).fillColor(textGray).text(item.description, 60, y + 21);
+         y += 12; // accommodate extra description line
+      }
       y += 28;
     });
 
@@ -137,37 +123,31 @@ const generateInvoicePDF = (invoice, order, customer) => {
 
     // --- TOTAL SECTION ---
     const totalsX = 380;
-    const totalsW = 180;
 
-    const addTotalRow = (label, value, isBold = false) => {
-      doc.fillColor(isBold ? textDark : textGray).font(isBold ? boldFont : regularFont).fontSize(isBold ? 12 : 10)
+    const addTotalRow = (label, value, isBold = false, isDanger = false) => {
+      doc.fillColor(isDanger ? "#dc3545" : (isBold ? textDark : textGray)).font(isBold ? boldFont : regularFont).fontSize(isBold ? 12 : 10)
          .text(label, totalsX, y, { width: 80, align: "left" })
          .text(value, totalsX + 80, y, { width: 100, align: "right" });
       y += isBold ? 24 : 18;
     };
 
-    addTotalRow("Subtotal:", `₹${invoice.subtotal.toFixed(2)}`);
-    if (invoice.discount > 0) addTotalRow("Discount:", `-₹${invoice.discount.toFixed(2)}`);
-    if (invoice.tax > 0) addTotalRow("Tax:", `₹${invoice.tax.toFixed(2)}`);
+    addTotalRow("Subtotal", `₹${invoice.subtotal.toFixed(2)}`);
+    if (invoice.discount > 0) addTotalRow("Discount", `-₹${invoice.discount.toFixed(2)}`, false, true);
+    if (invoice.tax > 0) addTotalRow("Tax", `₹${invoice.tax.toFixed(2)}`);
     
     y += 4;
     doc.fillColor(primary).font(boldFont).fontSize(12)
-       .text("TOTAL AMOUNT", totalsX, y, { width: 100, align: "left" })
+       .text("Total", totalsX, y, { width: 100, align: "left" })
        .text(`₹${invoice.totalAmount.toFixed(2)}`, totalsX + 100, y, { width: 80, align: "right" });
-
+       
     // --- FOOTER SECTION ---
     // Fix positioning at bottom
-    const footerY = 740;
+    const footerY = 770;
     
     // Colored bottom bar
-    doc.rect(25, footerY, 545, 30).fill(primary);
-    doc.fillColor("#FFFFFF").font(boldFont).fontSize(11)
-       .text("Thank you for choosing Ghanshyam Ladies Tailor!", 25, footerY + 9, { align: "center", width: 545 });
+    doc.fillColor(textGray).font(regularFont).fontSize(10)
+       .text("Thank you for choosing Ghanshyam Ladies Tailor! · Precision and Perfection in Every Stitch", 25, footerY, { align: "center", width: 545 });
 
-    // Sub footer
-    doc.fillColor(textGray).font(regularFont).fontSize(9)
-       .text("This invoice is generated after order completion.", 25, footerY + 38, { align: "center", width: 545 })
-       .text("This is a computer-generated invoice. No signature required.", 25, footerY + 50, { align: "center", width: 545 });
 
     doc.end();
   });

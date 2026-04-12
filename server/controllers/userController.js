@@ -64,6 +64,46 @@ const getCustomerById = async (req, res) => {
   }
 };
 
+const createCustomer = async (req, res) => {
+  try {
+    let { name, phone, email, address } = req.body;
+    if (!name || !phone || !email) return res.status(400).json({ success: false, message: "Name, phone, and email are required" });
+
+    // Normalize phone number (remove spaces, dashes)
+    phone = phone.replace(/\D/g, "");
+
+    const existingPhone = await User.findOne({ phone });
+    if (existingPhone) return res.status(400).json({ success: false, message: "A user with this phone number already exists" });
+
+    const existingEmail = await User.findOne({ email });
+    if (existingEmail) return res.status(400).json({ success: false, message: "Email already exists" });
+
+    const randomPassword = require("crypto").randomBytes(8).toString("hex");
+    const hashedPassword = await bcrypt.hash(randomPassword, 10);
+
+    const newCustomer = await User.create({
+      name,
+      phone,
+      email,
+      address: address || "",
+      password: hashedPassword,
+      isVerified: true,
+      role: "user"
+    });
+
+    const customerData = newCustomer.toObject();
+    delete customerData.password;
+    
+    res.status(201).json({ success: true, message: "Customer created successfully", customer: customerData });
+  } catch (err) {
+    if (err.code === 11000) {
+      const duplicateField = Object.keys(err.keyPattern)[0];
+      return res.status(400).json({ success: false, message: `A user with this ${duplicateField} already exists` });
+    }
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+};
+
 // Delete customer and all their data
 const deleteCustomer = async (req, res) => {
   try {
@@ -84,4 +124,4 @@ const deleteCustomer = async (req, res) => {
   }
 };
 
-module.exports = { getProfile, updateProfile, changePassword, getAllCustomers, getCustomerById, deleteCustomer };
+module.exports = { getProfile, updateProfile, changePassword, getAllCustomers, getCustomerById, createCustomer, deleteCustomer };

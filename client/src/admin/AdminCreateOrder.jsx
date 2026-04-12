@@ -52,7 +52,7 @@ export default function AdminCreateOrder() {
   // Items List
   const [items, setItems] = useState([
     {
-      clothType: "", customClothType: "", fabricType: "", color: "",
+      clothType: "", customClothType: "", fabricType: "",
       specialInstructions: "", price: "", measurement: {}, showMeasure: false, quantity: 1
     }
   ]);
@@ -60,6 +60,15 @@ export default function AdminCreateOrder() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+
+  const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
+  const [customerSearch, setCustomerSearch] = useState("");
+  const [selectedCustomer, setSelectedCustomer] = useState(null);
+  
+  const [showAddCustomer, setShowAddCustomer] = useState(false);
+  const [newCustomerForm, setNewCustomerForm] = useState({ name: "", phone: "", email: "", address: "" });
+  const [customerWorking, setCustomerWorking] = useState(false);
+  const [customerError, setCustomerError] = useState("");
 
   useEffect(() => {
     userAPI.getAllCustomers().then((res) => setCustomers(res.data.customers));
@@ -80,12 +89,36 @@ export default function AdminCreateOrder() {
   };
 
   const addItem = () => {
-    setItems([...items, { clothType: "", customClothType: "", fabricType: "", color: "", specialInstructions: "", price: "", measurement: {}, showMeasure: false, quantity: 1 }]);
+    setItems([...items, { clothType: "", customClothType: "", fabricType: "", specialInstructions: "", price: "", measurement: {}, showMeasure: false, quantity: 1 }]);
   };
 
   const removeItem = (index) => {
     const newItems = items.filter((_, i) => i !== index);
     setItems(newItems);
+  };
+
+  const handleCreateCustomer = async () => {
+    if(!newCustomerForm.name || !newCustomerForm.phone || !newCustomerForm.email) {
+        setCustomerError("Name, Phone, and Email are required.");
+        return;
+    }
+    setCustomerError(""); setCustomerWorking(true);
+    try {
+        const res = await userAPI.createCustomer(newCustomerForm);
+        if(res.data.success) {
+             const created = res.data.customer;
+             setCustomers([created, ...customers]);
+             setOrderForm({...orderForm, userId: created._id});
+             setSelectedCustomer(created);
+             setCustomerSearch(`${created.name} — ${created.phone}`);
+             setShowAddCustomer(false);
+             setNewCustomerForm({ name: "", phone: "", email: "", address: "" });
+        }
+    } catch(err) {
+        setCustomerError(err.response?.data?.message || "Failed to create customer");
+    } finally {
+        setCustomerWorking(false);
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -167,12 +200,50 @@ export default function AdminCreateOrder() {
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 20 }}>
               <div className="form-group">
                 <label>Select Customer <span className="required">*</span></label>
-                <select className="form-control" name="userId" value={orderForm.userId} onChange={handleOrderChange} required>
-                  <option value="">Choose customer...</option>
-                  {customers.map((c) => (
-                    <option key={c._id} value={c._id}>{c.name} — {c.phone}</option>
-                  ))}
-                </select>
+                <div style={{ position: "relative" }}>
+                  <div style={{ display: "flex", gap: "10px" }}>
+                    <input 
+                      className="form-control" 
+                      placeholder="Search by name or phone..." 
+                      value={customerSearch}
+                      onFocus={() => setShowCustomerDropdown(true)}
+                      onBlur={() => setTimeout(() => setShowCustomerDropdown(false), 200)}
+                      onChange={(e) => {
+                          setCustomerSearch(e.target.value);
+                          if(selectedCustomer) {
+                              setSelectedCustomer(null);
+                              setOrderForm({...orderForm, userId: ""});
+                          }
+                      }} 
+                    />
+                    <button type="button" className="btn btn-outline"
+                      onClick={(e) => { e.preventDefault(); setShowAddCustomer(true); }}
+                      style={{ padding: "0 16px", whiteSpace: "nowrap" }}>
+                      <i className="fa-solid fa-plus" /> New
+                    </button>
+                  </div>
+                  {showCustomerDropdown && (
+                    <div style={{ position: "absolute", top: "calc(100% + 4px)", left: 0, right: "90px", background: "var(--bg-card)", border: "1px solid var(--border)", zIndex: 10, maxHeight: 200, overflowY: "auto", borderRadius: "8px", boxShadow: "0 4px 12px rgba(0,0,0,0.1)" }}>
+                        {customers.filter(c => `${c.name} ${c.phone}`.toLowerCase().includes(customerSearch.toLowerCase())).length === 0 ? (
+                            <div style={{ padding: "12px", color: "var(--text-gray)", textAlign: "center", fontSize: 13 }}>No customers found.</div>
+                        ) : (
+                            customers.filter(c => `${c.name} ${c.phone}`.toLowerCase().includes(customerSearch.toLowerCase())).map(c => (
+                                <div key={c._id} style={{ padding: "10px 14px", cursor: "pointer", borderBottom: "1px solid var(--border)", ":hover": { background: "var(--bg-light)" } }} 
+                                onMouseDown={(e) => {
+                                    e.preventDefault(); // Prevent input onBlur from firing before state updates
+                                    setSelectedCustomer(c);
+                                    setCustomerSearch(`${c.name} — ${c.phone}`);
+                                    setOrderForm({...orderForm, userId: c._id});
+                                    setShowCustomerDropdown(false);
+                                }}>
+                                    <div style={{ fontWeight: 500, color: "var(--text-dark)" }}>{c.name}</div>
+                                    <div style={{ fontSize: 12, color: "var(--text-gray)" }}>{c.phone}</div>
+                                </div>
+                            ))
+                        )}
+                    </div>
+                  )}
+                </div>
               </div>
 
               <div className="form-group">
@@ -229,16 +300,12 @@ export default function AdminCreateOrder() {
                         </div>
 
                         <div className="form-row">
-                            <div className="form-group">
+                            <div className="form-group" style={{ flex: 1 }}>
                             <label>Fabric Type</label>
                             <select className="form-control" value={item.fabricType} onChange={(e) => handleItemChange(index, "fabricType", e.target.value)}>
                                 <option value="">Select fabric</option>
                                 {FABRIC_TYPES.map(f => <option key={f} value={f}>{f}</option>)}
                             </select>
-                            </div>
-                            <div className="form-group">
-                            <label>Color</label>
-                            <input className="form-control" placeholder="e.g. Red" value={item.color} onChange={(e) => handleItemChange(index, "color", e.target.value)} />
                             </div>
                         </div>
 
@@ -323,6 +390,50 @@ export default function AdminCreateOrder() {
           </button>
         </div>
       </form>
+
+      {/* Add New Customer Modal */}
+      {showAddCustomer && (
+        <div className="modal-overlay" style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 999 }}>
+          <div className="card" style={{ width: "90%", maxWidth: 500, padding: 24, animation: "fadeIn 0.2s" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+                  <h3 style={{ margin: 0 }}>Create New Customer</h3>
+                  <button type="button" className="btn btn-ghost btn-sm" onClick={() => setShowAddCustomer(false)}>
+                      <i className="fa-solid fa-times" />
+                  </button>
+              </div>
+              
+              {customerError && <div className="alert alert-error" style={{ marginBottom: 16 }}>{customerError}</div>}
+              
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+                  <div className="form-group">
+                      <label>Name <span className="required">*</span></label>
+                      <input className="form-control" value={newCustomerForm.name} onChange={e => setNewCustomerForm({...newCustomerForm, name: e.target.value})} placeholder="Full name" autoFocus />
+                  </div>
+                  <div className="form-group">
+                      <label>Phone <span className="required">*</span></label>
+                      <input className="form-control" value={newCustomerForm.phone} onChange={e => setNewCustomerForm({...newCustomerForm, phone: e.target.value})} placeholder="Mobile number" />
+                  </div>
+              </div>
+              
+              <div className="form-group" style={{ marginTop: 16 }}>
+                  <label>Email <span className="required">*</span></label>
+                  <input className="form-control" type="email" value={newCustomerForm.email} onChange={e => setNewCustomerForm({...newCustomerForm, email: e.target.value})} placeholder="Email address" />
+              </div>
+
+              <div className="form-group" style={{ marginTop: 16 }}>
+                  <label>Address <span style={{fontSize: 12, color: "var(--text-gray)", fontWeight: "normal"}}>(Optional)</span></label>
+                  <textarea className="form-control" rows={2} value={newCustomerForm.address} onChange={e => setNewCustomerForm({...newCustomerForm, address: e.target.value})} placeholder="Full address" />
+              </div>
+
+              <div style={{ display: "flex", justifyContent: "flex-end", gap: 10, marginTop: 24, paddingTop: 16, borderTop: "1px solid var(--border)" }}>
+                  <button type="button" className="btn btn-ghost" onClick={() => setShowAddCustomer(false)}>Cancel</button>
+                  <button type="button" className="btn btn-primary" onClick={handleCreateCustomer} disabled={customerWorking}>
+                      {customerWorking ? <><i className="fa-solid fa-spinner fa-spin" /> Saving...</> : <><i className="fa-solid fa-check" /> Create Customer</>}
+                  </button>
+              </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

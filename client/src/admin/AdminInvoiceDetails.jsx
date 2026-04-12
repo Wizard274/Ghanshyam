@@ -194,7 +194,8 @@ export default function AdminInvoiceDetails() {
           {invoice.notes && <div style={{ marginTop: 16, padding: "10px 14px", background: "var(--primary-pale)", borderRadius: 8, fontSize: 13, color: "var(--text-gray)", fontStyle: "italic" }}><i className="fa-solid fa-note-sticky" style={{ marginRight: 8 }} />{invoice.notes}</div>}
 
           <div className="invoice-footer-note">
-            Thank you for choosing ઘનશ્યામ Ladies Tailor! · Precision and Perfection in Every Stitch
+            Thank you for choosing ઘનશ્યામ Ladies Tailor!<br />
+            <span style={{ fontSize: 12 }}>This is a computer-generated invoice. No signature required.</span>
           </div>
         </div>
       </div>

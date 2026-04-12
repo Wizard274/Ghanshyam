@@ -219,7 +219,7 @@ export default function AdminOrderDetails() {
                   </h3>
                   <div style={{ fontSize: 13, color: "var(--text-gray)" }}>
                     {item.fabricType && <span style={{ marginRight: 12 }}>Fabric: {item.fabricType}</span>}
-                    {item.color && <span style={{ marginRight: 12 }}>Color: {item.color}</span>}
+
                     {item.quantity && <span>Qty: {item.quantity}</span>}
                   </div>
                 </div>

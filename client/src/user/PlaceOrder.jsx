@@ -39,7 +39,7 @@ export default function PlaceOrder() {
   const navigate = useNavigate();
   
   const [items, setItems] = useState([
-    { clothType: "", customClothType: "", fabricType: "", color: "", specialInstructions: "", price: "", measurement: {}, showMeasurement: false, quantity: 1 }
+    { clothType: "", customClothType: "", fabricType: "", specialInstructions: "", price: "", measurement: {}, showMeasurement: false, quantity: 1 }
   ]);
   
   const [measurementType, setMeasurementType] = useState("self");
@@ -65,7 +65,7 @@ export default function PlaceOrder() {
   };
 
   const addItem = () => {
-    setItems([...items, { clothType: "", customClothType: "", fabricType: "", color: "", specialInstructions: "", price: "", measurement: {}, showMeasurement: false, quantity: 1 }]);
+    setItems([...items, { clothType: "", customClothType: "", fabricType: "", specialInstructions: "", price: "", measurement: {}, showMeasurement: false, quantity: 1 }]);
   };
 
   const removeItem = (index) => setItems(items.filter((_, i) => i !== index));
@@ -250,16 +250,12 @@ export default function PlaceOrder() {
                         </div>
 
                         <div className="form-row">
-                            <div className="form-group">
+                            <div className="form-group" style={{ flex: 1 }}>
                             <label>Fabric Type</label>
                             <select className="form-control" value={item.fabricType} onChange={(e) => handleItemChange(index, "fabricType", e.target.value)}>
                                 <option value="">Select fabric</option>
                                 {FABRIC_TYPES.map(f => <option key={f} value={f}>{f}</option>)}
                             </select>
-                            </div>
-                            <div className="form-group">
-                            <label>Color</label>
-                            <input className="form-control" placeholder="e.g. Red" value={item.color} onChange={(e) => handleItemChange(index, "color", e.target.value)} />
                             </div>
                         </div>
 

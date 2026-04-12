@@ -143,7 +143,7 @@ export default function OrderDetails() {
                               <h3 style={{ margin: "0 0 6px 0", fontSize: 16 }}>Item #{index + 1}: {item.clothType} {item.customClothType ? `(${item.customClothType})` : ""}</h3>
                               <div style={{ fontSize: 13, color: "var(--text-gray)" }}>
                                   {item.fabricType && <span style={{ marginRight: 12 }}>Fabric: {item.fabricType}</span>}
-                                  {item.color && <span style={{ marginRight: 12 }}>Color: {item.color}</span>}
+
                                   {item.quantity && <span>Qty: {item.quantity}</span>}
                               </div>
                           </div>

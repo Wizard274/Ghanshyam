@@ -24,7 +24,6 @@ const orderItemSchema = new mongoose.Schema(
     clothType: { type: String, required: true },
     customClothType: { type: String },
     fabricType: { type: String },
-    color: { type: String },
     measurement: { type: measurementSchema },
     specialInstructions: { type: String },
     designImage: { type: String },

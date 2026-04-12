@@ -36,10 +36,9 @@ const createOrder = async (req, res) => {
     if (items) {
       parsedItems = typeof items === "string" ? JSON.parse(items) : items;
     } else {
-        const { clothType, customClothType, fabricType, color, specialInstructions, measurement, price } = req.body;
         if (clothType) {
             parsedItems.push({
-                clothType, customClothType, fabricType, color, specialInstructions, price,
+                clothType, customClothType, fabricType, specialInstructions, price,
                 measurement: measurement ? (typeof measurement === "string" ? JSON.parse(measurement) : measurement) : {}
             });
         }
@@ -71,7 +70,6 @@ const createOrder = async (req, res) => {
         clothType: item.clothType,
         customClothType: item.customClothType || "",
         fabricType: item.fabricType || "",
-        color: item.color || "",
         measurement: measurementType === "tailor" ? {} : (item.measurement || {}),
         specialInstructions: item.specialInstructions || "",
         price: parseFloat(item.price) || 0,
@@ -116,9 +114,9 @@ const adminCreateOrder = async (req, res) => {
 
     let parsedItems = items ? (typeof items === "string" ? JSON.parse(items) : items) : null;
     if (!parsedItems || parsedItems.length === 0) {
-        const { clothType, customClothType, fabricType, color, specialInstructions, measurement, price } = req.body;
+        const { clothType, customClothType, fabricType, specialInstructions, measurement, price } = req.body;
         if (!clothType) return res.status(400).json({ success: false, message: "Cloth type is required" });
-        parsedItems = [{ clothType, customClothType, fabricType, color, specialInstructions, measurement, price }];
+        parsedItems = [{ clothType, customClothType, fabricType, specialInstructions, measurement, price }];
     }
 
     const order = await Order.create({
@@ -132,7 +130,6 @@ const adminCreateOrder = async (req, res) => {
         clothType: item.clothType,
         customClothType: item.customClothType || "",
         fabricType: item.fabricType || "",
-        color: item.color || "",
         measurement: item.measurement || {},
         specialInstructions: item.specialInstructions || "",
         price: parseFloat(item.price) || 0,
@@ -339,7 +336,7 @@ const updateItemStatus = async (req, res) => {
             if(totalAmount === 0) totalAmount = 500; 
             
             const invoiceItems = allItems.map(i => ({
-                name: `${i.clothType} Stitching`,
+                name: i.clothType,
                 description: i.fabricType || "",
                 quantity: i.quantity || 1,
                 price: i.price || 0
