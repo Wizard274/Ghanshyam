@@ -156,7 +156,14 @@ const adminCreateOrder = async (req, res) => {
 
 const getUserOrders = async (req, res) => {
   try {
-    const orders = await Order.find({ userId: req.user._id }).sort({ createdAt: -1 }).lean();
+    const { page = 1, limit = 7, search = "" } = req.query;
+    const parsedPage = parseInt(page, 10);
+    const parsedLimit = parseInt(limit, 10);
+    const skip = (parsedPage - 1) * parsedLimit;
+
+    // We do all fetching and sorting first to make it easier since we have to process items to get true statuses and clothTypes
+    let orders = await Order.find({ userId: req.user._id }).sort({ createdAt: -1 }).lean();
+    
     for (let o of orders) {
         o.items = await OrderItem.find({ orderId: o._id }).lean();
         if(o.items.length > 0) {
@@ -169,7 +176,20 @@ const getUserOrders = async (req, res) => {
             o.clothType = o.clothType || "Unknown Type";
         }
     }
-    res.json({ success: true, orders });
+
+    if (search) {
+      const s = search.toLowerCase();
+      orders = orders.filter(o => 
+        (o.clothType && o.clothType.toLowerCase().includes(s)) ||
+        (o.orderNumber && o.orderNumber.toLowerCase().includes(s))
+      );
+    }
+
+    const totalOrders = orders.length;
+    const totalPages = Math.ceil(totalOrders / parsedLimit) || 1;
+    const paginatedOrders = orders.slice(skip, skip + parsedLimit);
+
+    res.json({ success: true, orders: paginatedOrders, totalPages, currentPage: parsedPage });
   } catch (err) {
     res.status(500).json({ success: false, message: "Server error" });
   }

@@ -86,10 +86,37 @@ const getAllInvoices = async (req, res) => {
 // Get user invoices
 const getUserInvoices = async (req, res) => {
   try {
-    const invoices = await Invoice.find({ customerId: req.user._id })
+    const { page = 1, limit = 7, search = "" } = req.query;
+    const parsedPage = parseInt(page, 10);
+    const parsedLimit = parseInt(limit, 10);
+    const skip = (parsedPage - 1) * parsedLimit;
+
+    let query = { customerId: req.user._id };
+
+    if (search) {
+      // Find orders matching the search term to filter invoices by orderNumber
+      const orders = await Order.find({ orderNumber: { $regex: search, $options: "i" } }, "_id");
+      const orderIds = orders.map(o => o._id);
+      
+      query = {
+        ...query,
+        $or: [
+          { invoiceNumber: { $regex: search, $options: "i" } },
+          { orderId: { $in: orderIds } }
+        ]
+      };
+    }
+
+    const totalInvoices = await Invoice.countDocuments(query);
+    const totalPages = Math.ceil(totalInvoices / parsedLimit) || 1;
+
+    const invoices = await Invoice.find(query)
       .populate("orderId", "orderNumber clothType status")
-      .sort({ createdAt: -1 });
-    res.json({ success: true, invoices });
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(parsedLimit);
+
+    res.json({ success: true, invoices, totalPages, currentPage: parsedPage });
   } catch (err) {
     res.status(500).json({ success: false, message: "Server error" });
   }

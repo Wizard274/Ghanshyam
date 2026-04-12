@@ -31,7 +31,7 @@ export const authAPI = {
 
 export const orderAPI = {
   create: (data) => API.post("/orders/create", data, { headers: { "Content-Type": "multipart/form-data" } }),
-  getMyOrders: () => API.get("/orders/my-orders"),
+  getMyOrders: (params) => API.get("/orders/my-orders", { params }),
   getById: (id) => API.get(`/orders/${id}`),
   getAll: (params) => API.get("/orders/all", { params }),
   getAllItems: (params) => API.get("/orders/items/all", { params }),
@@ -47,7 +47,7 @@ export const invoiceAPI = {
   create: (data) => API.post("/invoices/create", data),
   getById: (id) => API.get(`/invoices/${id}`),
   getAll: (params) => API.get("/invoices/all", { params }),
-  getMyInvoices: () => API.get("/invoices/my-invoices"),
+  getMyInvoices: (params) => API.get("/invoices/my-invoices", { params }),
   downloadPDF: (id) => API.get(`/invoices/pdf/${id}`, { responseType: "blob" }),
   updatePayment: (id, data) => API.put(`/invoices/${id}/payment`, data),
   update: (id, data) => API.put(`/invoices/${id}`, data),

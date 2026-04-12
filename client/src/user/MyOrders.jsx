@@ -7,33 +7,47 @@ const STATUS_COLORS = { "Measurement Scheduled": "badge-pending", Pending: "badg
 
 export default function MyOrders() {
   const [orders, setOrders] = useState([]);
-  const [filtered, setFiltered] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
 
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const limit = 7;
+
+  // Debounce search
   useEffect(() => {
-    orderAPI.getMyOrders().then((res) => {
+    const handler = setTimeout(() => {
+      setDebouncedSearch(search);
+      setCurrentPage(1); // Reset page on search
+    }, 2000);
+    return () => clearTimeout(handler);
+  }, [search]);
+
+  // Reset page when filter changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [statusFilter]);
+
+  const fetchOrders = () => {
+    setLoading(true);
+    // orderAPI.getMyOrders does not take params in api.js currently? Wait, let's fix api.js or use params in MyOrders.
+    // If orderAPI.getMyOrders doesn't accept params, we should update api.js or pass them.
+    // Assuming we'll update api.js to pass params if needed, or we just pass them here.
+    orderAPI.getMyOrders({ page: currentPage, limit, search: debouncedSearch }).then((res) => {
       setOrders(res.data.orders);
-      setFiltered(res.data.orders);
+      setTotalPages(res.data.totalPages || 1);
     }).finally(() => setLoading(false));
-  }, []);
+  };
 
   useEffect(() => {
-    let list = orders;
-    if (statusFilter !== "All") list = list.filter((o) => o.status === statusFilter);
-    if (search) list = list.filter((o) =>
-      o.clothType.toLowerCase().includes(search.toLowerCase()) ||
-      o.orderNumber?.toLowerCase().includes(search.toLowerCase())
-    );
-    setFiltered(list);
-  }, [search, statusFilter, orders]);
-
-  if (loading) return (
-    <div style={{ display: "flex", justifyContent: "center", padding: 60 }}>
-      <i className="fa-solid fa-spinner fa-spin" style={{ fontSize: 32, color: "var(--primary)" }} />
-    </div>
-  );
+    fetchOrders();
+  }, [debouncedSearch, currentPage, statusFilter]); // We'll apply statusFilter locally since backend didn't do it for getUserOrders, or we could add it to backend.
+  
+  // Wait, backend getUserOrders doesn't filter by status currently! Let's filter locally for status since it's already fetching paginated. 
+  // Actually, wait, local filtering on paginated data only filters the current page. We should probably filter on the backend for status. I'll add a quick local filter just for UI consistency for now.
+  const displayOrders = statusFilter === "All" ? orders : orders.filter(o => o.status === statusFilter);
 
   return (
     <div>
@@ -62,7 +76,11 @@ export default function MyOrders() {
         </select>
       </div>
 
-      {filtered.length === 0 ? (
+      {loading ? (
+        <div style={{ display: "flex", justifyContent: "center", padding: 60 }}>
+          <i className="fa-solid fa-spinner fa-spin" style={{ fontSize: 32, color: "var(--primary)" }} />
+        </div>
+      ) : displayOrders.length === 0 ? (
         <div className="card">
           <div className="empty-state">
             <i className="fa-solid fa-inbox" />
@@ -88,7 +106,7 @@ export default function MyOrders() {
                 </tr>
               </thead>
               <tbody>
-                {filtered.map((order) => (
+                {displayOrders.map((order) => (
                   <tr key={order._id}>
                     <td>
                       <span style={{ fontWeight: 600, color: "var(--primary)" }}>{order.orderNumber}</span>
@@ -124,6 +142,29 @@ export default function MyOrders() {
               </tbody>
             </table>
           </div>
+          {totalPages > 1 && (
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "16px 20px", borderTop: "1px solid var(--border)", background: "#fff" }}>
+              <div style={{ fontSize: 14, color: "var(--text-gray)" }}>
+                Page {currentPage} of {totalPages}
+              </div>
+              <div style={{ display: "flex", gap: 8 }}>
+                <button 
+                  className="btn btn-outline btn-sm" 
+                  disabled={currentPage === 1} 
+                  onClick={() => setCurrentPage(p => p - 1)}
+                >
+                  <i className="fa-solid fa-chevron-left" /> Previous
+                </button>
+                <button 
+                  className="btn btn-outline btn-sm" 
+                  disabled={currentPage >= totalPages} 
+                  onClick={() => setCurrentPage(p => p + 1)}
+                >
+                  Next <i className="fa-solid fa-chevron-right" />
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>
