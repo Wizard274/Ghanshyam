@@ -11,7 +11,7 @@ const userSchema = new mongoose.Schema(
     isVerified: { type: Boolean, default: false },
     otp: { type: String },
     otpExpire: { type: Date },
-    otpType: { type: String, enum: ["register", "reset"] },
+    otpType: { type: String, enum: ["register", "reset", "advance_payment", "final_payment"] },
   },
   { timestamps: true }
 );

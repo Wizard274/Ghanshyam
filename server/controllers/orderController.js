@@ -4,8 +4,9 @@ const Invoice = require("../models/invoiceModel");
 const AppointmentSlot = require("../models/appointmentSlotModel");
 const Appointment = require("../models/appointmentModel");
 const User = require("../models/userModel");
-const { sendDeliveryScheduledEmail, sendOrderCompletedEmail } = require("../utils/emailUtils");
+const { sendDeliveryScheduledEmail, sendOrderCompletedEmail, sendChallanEmail } = require("../utils/emailUtils");
 const { generateInvoicePDF } = require("../utils/generateInvoice");
+const { generateChallanPDF } = require("../utils/generateChallan");
 const multer = require("multer");
 const path = require("path");
 const fs = require("fs");
@@ -63,6 +64,7 @@ const createOrder = async (req, res) => {
         measurementType: measurementType || "self",
         designImage,
         notes: notes || "",
+        orderStatus: "Price Pending"
     });
 
     const itemsToCreate = parsedItems.map(item => ({
@@ -123,6 +125,7 @@ const adminCreateOrder = async (req, res) => {
       userId,
       deliveryDate: new Date(deliveryDate),
       notes: notes || "",
+      orderStatus: "Price Pending"
     });
 
     const itemsToCreate = parsedItems.map(item => ({
@@ -166,13 +169,11 @@ const getUserOrders = async (req, res) => {
     
     for (let o of orders) {
         o.items = await OrderItem.find({ orderId: o._id }).lean();
+        o.status = o.orderStatus || "Price Pending";
         if(o.items.length > 0) {
-            const allDelivered = o.items.every(i => i.status === "Delivered");
-            o.status = allDelivered ? "Delivered" : "Pending";
             o.price = o.items.reduce((sum, item) => sum + (item.price || 0), 0);
             o.clothType = o.items.map(i => i.clothType).join(", ");
         } else {
-            o.status = o.status || "Pending";
             o.clothType = o.clothType || "Unknown Type";
         }
     }
@@ -203,11 +204,10 @@ const getOrderById = async (req, res) => {
       return res.status(403).json({ success: false, message: "Access denied" });
     
     orderDoc.items = await OrderItem.find({ orderId: orderDoc._id }).lean();
+    orderDoc.status = orderDoc.orderStatus || "Price Pending";
     if(orderDoc.items.length > 0) {
-        orderDoc.status = orderDoc.items.every(i => i.status === "Delivered") ? "Delivered" : "Pending";
         orderDoc.price = orderDoc.items.reduce((sum, item) => sum + (item.price || 0), 0);
     } else {
-        orderDoc.status = orderDoc.status || "Pending";
         orderDoc.clothType = orderDoc.clothType || "Unknown Type";
     }
 
@@ -232,12 +232,11 @@ const getAllOrders = async (req, res) => {
     
     for(let o of orders) {
         o.items = await OrderItem.find({ orderId: o._id }).lean();
+        o.status = o.orderStatus || "Price Pending";
         if(o.items.length > 0) {
-            o.status = o.items.every(item => item.status === "Delivered") ? "Delivered" : "Pending";
             o.price = o.items.reduce((sum, item) => sum + (item.price || 0), 0);
             o.clothType = o.items.map(i => i.clothType).join(", "); 
         } else {
-            o.status = o.status || "Pending";
             o.clothType = o.clothType || "Unknown Type";
         }
     }
@@ -367,17 +366,50 @@ const updateItemStatus = async (req, res) => {
         if(!item) return res.status(404).json({success: false, message: "Item not found"});
         
         const prevStatus = item.status;
-        if(status) item.status = status;
+        if(status) {
+             item.status = status;
+        }
         if(measurement) item.measurement = measurement;
         if(price !== undefined) item.price = parseFloat(price) || 0;
         
         await item.save();
 
         const order = await Order.findById(item.orderId);
+        
+        // Let's also update the parent orderStatus if the status changes.
+        // We evaluate what the overarching orderStatus should be.
         const allItems = await OrderItem.find({ orderId: order._id });
+        const allReady = allItems.length > 0 && allItems.every(i => ["Ready", "Delivered"].includes(i.status));
         const allDelivered = allItems.length > 0 && allItems.every(i => i.status === "Delivered");
+        
+        if (allDelivered) {
+             order.orderStatus = "Delivered";
+             if (order.paymentStatus !== "Paid") {
+                 order.paymentStatus = "Paid";
+                 order.paymentMethod = "Cash";
+                 order.codSelected = true;
+             }
+        } else if (allReady) {
+             order.orderStatus = "Ready";
+        } else if (status === "Cutting") {
+             order.orderStatus = "Cutting";
+        } else if (status === "Stitching") {
+             order.orderStatus = "Stitching";
+        }
+        
+        await order.save();
 
-        if (allDelivered && !order.invoiceGenerated) {
+        if (allDelivered) {
+             const invoice = await Invoice.findOne({ orderId: order._id });
+             if (invoice && invoice.paymentStatus !== "Paid") {
+                 invoice.paymentStatus = "Paid";
+                 invoice.paymentMethod = "Cash";
+                 invoice.remainingAmount = 0;
+                 await invoice.save();
+             }
+        }
+
+        if (allReady && !order.invoiceGenerated) {
             let totalAmount = allItems.reduce((sum, i) => sum + (i.price || 0), 0);
             if(totalAmount === 0) totalAmount = 500; 
             
@@ -393,7 +425,9 @@ const updateItemStatus = async (req, res) => {
                 customerId: order.userId,
                 items: invoiceItems,
                 subtotal: totalAmount, discount: 0, tax: 0, totalAmount: totalAmount,
-                paymentStatus: "Pending", paymentMethod: "Cash",
+                advanceAmount: order.advanceAmount || 0,
+                remainingAmount: totalAmount - (order.advanceAmount || 0),
+                paymentStatus: order.paymentStatus, paymentMethod: "Online",
             });
             order.invoiceGenerated = true;
             await order.save();
@@ -464,11 +498,10 @@ const getStats = async (req, res) => {
     let recent = await Order.find(userId ? {userId} : {}).populate("userId", "name").sort({ createdAt: -1 }).limit(5).lean();
     for (let o of recent) {
         o.items = await OrderItem.find({ orderId: o._id }).lean();
+        o.status = o.orderStatus || "Price Pending";
         if(o.items.length > 0) {
-            o.status = o.items.every(item => item.status === "Delivered") ? "Delivered" : "Pending";
             o.clothType = o.items.map(i => i.clothType).join(", "); 
         } else {
-            o.status = o.status || "Pending";
             o.clothType = o.clothType || "Unknown Type";
         }
     }
@@ -479,8 +512,72 @@ const getStats = async (req, res) => {
   }
 };
 
+const generateChallan = async (req, res) => {
+  try {
+    const orderId = req.params.id;
+    const { itemsConfig } = req.body; 
+    // itemsConfig: array of { itemId, price }
+
+    const order = await Order.findById(orderId).populate("userId");
+    if (!order) return res.status(404).json({ success: false, message: "Order not found" });
+
+    let totalAmount = 0;
+
+    // Update item prices
+    for (const config of itemsConfig) {
+      if (config.price !== undefined) {
+         await OrderItem.findByIdAndUpdate(config.itemId, { price: parseFloat(config.price) });
+         const item = await OrderItem.findById(config.itemId);
+         totalAmount += item.price * (item.quantity || 1);
+      }
+    }
+
+    order.totalAmount = totalAmount;
+    order.advanceAmount = totalAmount * 0.35; // 35% advance
+    order.challanGenerated = true;
+    order.orderStatus = "Challan Generated";
+    
+    await order.save();
+
+    const orderItems = await OrderItem.find({ orderId: order._id });
+
+    try {
+       const user = await User.findById(order.userId);
+       const pdfBuffer = await generateChallanPDF(order, orderItems, user);
+       await sendChallanEmail(order, user, pdfBuffer);
+    } catch (err) {
+       console.error("Failed to send challan email", err);
+    }
+
+    res.json({ success: true, message: "Challan generated successfully", order });
+  } catch (err) {
+    res.status(500).json({ success: false, message: "Server error: " + err.message });
+  }
+};
+
+const downloadChallanPDF = async (req, res) => {
+  try {
+    const order = await Order.findById(req.params.id);
+    if (!order) return res.status(404).json({ success: false, message: "Order not found" });
+    if (!order.challanGenerated) return res.status(400).json({ success: false, message: "Challan not generated yet" });
+
+    const customer = await User.findById(order.userId);
+    const orderItems = await OrderItem.find({ orderId: order._id });
+
+    const pdfBuffer = await generateChallanPDF(order, orderItems, customer);
+
+    res.set({
+      "Content-Type": "application/pdf",
+      "Content-Disposition": `inline; filename="EST-${order.orderNumber}.pdf"`,
+    });
+    res.send(pdfBuffer);
+  } catch (err) {
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+};
+
 module.exports = {
   createOrder, getUserOrders, getOrderById, getAllOrders, getAllItems,
   updateOrderStatus, updateItemStatus, updateMeasurement, adminCreateOrder,
-  deleteOrder, getStats, upload
+  deleteOrder, getStats, upload, generateChallan, downloadChallanPDF
 };

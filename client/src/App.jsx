@@ -18,6 +18,8 @@ import CustomerInvoices from "./user/CustomerInvoices";
 import InvoiceDetails from "./user/InvoiceDetails";
 import Profile from "./user/Profile";
 import Contact from "./user/Contact";
+import PaymentSuccess from "./user/PaymentSuccess";
+import PaymentCancel from "./user/PaymentCancel";
 
 // Admin pages
 import AdminDashboard from "./admin/AdminDashboard";
@@ -71,6 +73,8 @@ export default function App() {
         <Route path="/invoices/:id" element={<ProtectedRoute role="user"><UserLayout><InvoiceDetails /></UserLayout></ProtectedRoute>} />
         <Route path="/profile" element={<ProtectedRoute role="user"><UserLayout><Profile /></UserLayout></ProtectedRoute>} />
         <Route path="/contact" element={<ProtectedRoute role="user"><UserLayout><Contact /></UserLayout></ProtectedRoute>} />
+        <Route path="/payment-success" element={<ProtectedRoute role="user"><UserLayout><PaymentSuccess /></UserLayout></ProtectedRoute>} />
+        <Route path="/payment-cancel" element={<ProtectedRoute role="user"><UserLayout><PaymentCancel /></UserLayout></ProtectedRoute>} />
 
         {/* Admin */}
         <Route path="/admin" element={<ProtectedRoute role="admin"><AdminLayout><AdminDashboard /></AdminLayout></ProtectedRoute>} />

@@ -6,7 +6,18 @@ const orderSchema = new mongoose.Schema(
     orderNumber: { type: String, unique: true },
     deliveryDate: { type: Date },
     measurementType: { type: String, enum: ["self", "tailor"], default: "self" },
+    orderStatus: { 
+      type: String, 
+      enum: ["Placed", "Price Pending", "Challan Generated", "Advance Paid", "Pending", "Cutting", "Stitching", "Ready", "Final Payment", "Delivered"], 
+      default: "Price Pending" 
+    },
+    totalAmount: { type: Number, default: 0 },
+    advanceAmount: { type: Number, default: 0 },
+    paymentStatus: { type: String, enum: ["Pending", "Partial", "Paid"], default: "Pending" },
+    paymentMethod: { type: String, enum: ["Online", "Cash"], default: "Cash" },
+    codSelected: { type: Boolean, default: false },
     invoiceGenerated: { type: Boolean, default: false },
+    challanGenerated: { type: Boolean, default: false },
     confirmationEmailSent: { type: Boolean, default: false },
     notes: { type: String },
     designImage: { type: String },

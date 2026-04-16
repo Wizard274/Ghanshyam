@@ -20,6 +20,7 @@ app.use("/api/appointments", require("./routes/appointmentRoutes"));
 app.use("/api/invoices", require("./routes/invoiceRoutes"));
 app.use("/api/users", require("./routes/userRoutes"));
 app.use("/api/contact", require("./routes/contactRoutes"));
+app.use("/api/payments", require("./routes/paymentRoutes"));
 
 // Health check
 app.get("/api/health", (req, res) => res.json({ status: "OK", message: "Ghanshyam Tailor API Running" }));

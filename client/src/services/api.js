@@ -41,6 +41,15 @@ export const orderAPI = {
   adminCreate: (data) => API.post("/orders/admin-create", data),
   delete: (id) => API.delete(`/orders/${id}`),
   getStats: () => API.get("/orders/stats"),
+  generateChallan: (id, data) => API.post(`/orders/${id}/challan`, data),
+  downloadChallan: (id) => API.get(`/orders/${id}/challan/pdf`, { responseType: "blob" }),
+};
+
+export const paymentAPI = {
+  createCheckoutSession: (data) => API.post("/payments/create-checkout-session", data),
+  sendOtp: (data) => API.post("/payments/send-otp", data),
+  verifyOtp: (data) => API.post("/payments/verify-otp", data),
+  chooseCOD: (id) => API.post(`/payments/${id}/cod`),
 };
 
 export const invoiceAPI = {

@@ -1,5 +1,6 @@
 const nodemailer = require("nodemailer");
 const OrderItem = require("../models/orderItemModel");
+const { generateChallanPDF } = require("./generateChallan");
 
 const createTransporter = () => {
   return nodemailer.createTransport({
@@ -83,6 +84,44 @@ const sendDeliveryScheduledEmail = async (order, customer, invoiceNumber, paymen
   }
 };
 
+const sendChallanEmail = async (order, customer, challanPdfBuffer) => {
+  const transporter = createTransporter();
+
+  const html = `
+    <div style="font-family: 'Segoe UI', sans-serif; max-width: 600px; margin: 0 auto; background: #fff; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 24px rgba(0,0,0,0.08);">
+      <div style="background: linear-gradient(135deg, #8B4513 0%, #D2691E 100%); padding: 32px; text-align: center;">
+        <h1 style="color: #fff; margin: 0; font-size: 24px; letter-spacing: 1px;">Challan Generated!</h1>
+      </div>
+      <div style="padding: 40px 32px; text-align: left;">
+        <p style="color: #666; font-size: 16px; margin-bottom: 20px;">Dear ${customer.name},</p>
+        <p style="color: #333; font-size: 16px; margin-bottom: 20px;">
+          An estimate (Challan) for your order <strong>${order.orderNumber}</strong> has been generated and is attached to this email.
+        </p>
+        <p style="color: #d84315; font-size: 16px; margin-bottom: 20px; font-weight: bold;">
+           Please pay the 35% advance amount (₹${order.advanceAmount.toFixed(2)}) online via our portal to confirm your order. We cannot begin processing without it.
+        </p>
+      </div>
+      <div style="background: #f9f5f2; padding: 16px; text-align: center;">
+        <p style="color: #aaa; font-size: 12px; margin: 0;">© 2026 ઘનશ્યામ Ladies Tailor. All rights reserved.</p>
+      </div>
+    </div>
+  `;
+
+  await transporter.sendMail({
+    from: `"ઘનશ્યામ Ladies Tailor" <${process.env.EMAIL_USER}>`,
+    to: customer.email,
+    subject: `Challan / Estimate - ${order.orderNumber} | ઘનશ્યામ Ladies Tailor`,
+    html,
+    attachments: [
+      {
+        filename: `EST-${order.orderNumber}.pdf`,
+        content: challanPdfBuffer,
+        contentType: "application/pdf"
+      }
+    ]
+  });
+};
+
 const sendOrderCompletedEmail = async (order, customer, invoicePdfBuffer, invoiceTitle) => {
   const transporter = createTransporter();
 
@@ -126,5 +165,6 @@ const sendOrderCompletedEmail = async (order, customer, invoicePdfBuffer, invoic
 
 module.exports = {
   sendDeliveryScheduledEmail,
-  sendOrderCompletedEmail
+  sendOrderCompletedEmail,
+  sendChallanEmail
 };

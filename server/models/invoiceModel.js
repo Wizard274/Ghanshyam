@@ -17,6 +17,8 @@ const invoiceSchema = new mongoose.Schema(
     discount: { type: Number, default: 0 },
     tax: { type: Number, default: 0 },
     totalAmount: { type: Number, required: true },
+    advanceAmount: { type: Number, default: 0 },
+    remainingAmount: { type: Number, default: 0 },
     paymentStatus: { type: String, enum: ["Pending", "Paid", "Partial"], default: "Pending" },
     paymentMethod: { type: String, enum: ["Cash", "Online", "UPI", "Card"], default: "Cash" },
     notes: { type: String },

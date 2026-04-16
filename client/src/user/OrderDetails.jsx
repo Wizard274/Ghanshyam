@@ -1,14 +1,11 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
-import { orderAPI } from "../services/api";
+import { orderAPI, paymentAPI } from "../services/api";
 import "../styles/dashboard.css";
 import "../styles/form.css";
 
-const DEFAULT_STATUS_STEPS = ["Pending", "Cutting", "Stitching", "Ready", "Delivered"];
-const DEFAULT_STEP_ICONS = ["fa-clock", "fa-cut", "🧵", "fa-check-circle", "fa-truck"];
-
-const TAILOR_STATUS_STEPS = ["Measurement Scheduled", "Pending", "Cutting", "Stitching", "Ready", "Delivered"];
-const TAILOR_STEP_ICONS = ["fa-calendar-check", "fa-clock", "fa-cut", "🧵", "fa-check-circle", "fa-truck"];
+const ORDER_STATUS_STEPS = ["Placed", "Price Pending", "Challan Generated", "Advance Paid", "Pending", "Cutting", "Stitching", "Ready", "Final Payment", "Delivered"];
+const ORDER_STEP_ICONS = ["fa-shopping-bag", "fa-indian-rupee-sign", "fa-file-invoice", "fa-credit-card", "fa-clock", "fa-cut", "🧵", "fa-check-circle", "fa-wallet", "fa-truck"];
 
 const MEASUREMENT_FIELDS = [
   { key: "lambai", label: "Lambai" }, { key: "shoulder", label: "Shoulder" },
@@ -81,6 +78,29 @@ export default function OrderDetails() {
     }
   };
 
+  const handlePayment = async (type) => {
+     try {
+       const res = await paymentAPI.createCheckoutSession({ orderId: id, paymentType: type });
+       if (res.data.url) {
+           window.location.href = res.data.url;
+       }
+     } catch (err) {
+       window.scrollTo(0, 0);
+       setMsg(err.response?.data?.message || "Failed to initiate payment");
+     }
+  };
+
+  const handleCOD = async () => {
+    try {
+      if (!window.confirm("Are you sure you want to choose Cash on Delivery? An extra charge of ₹50 will be added.")) return;
+      await paymentAPI.chooseCOD(id);
+      setMsg("COD Selection Successful. Order is now pending delivery.");
+      fetchOrder();
+    } catch (err) {
+       setMsg(err.response?.data?.message || "Failed to choose COD");
+    }
+  };
+
   if (loading) return (
     <div style={{ display: "flex", justifyContent: "center", padding: 60 }}>
       <i className="fa-solid fa-spinner fa-spin" style={{ fontSize: 32, color: "var(--primary)" }} />
@@ -89,8 +109,7 @@ export default function OrderDetails() {
 
   if (!order) return null;
 
-  const statusSteps = order.measurementType === "tailor" ? TAILOR_STATUS_STEPS : DEFAULT_STATUS_STEPS;
-  const stepIcons = order.measurementType === "tailor" ? TAILOR_STEP_ICONS : DEFAULT_STEP_ICONS;
+  const currentOverallStep = ORDER_STATUS_STEPS.indexOf(order.orderStatus || "Pending");
 
   return (
     <div>
@@ -128,14 +147,70 @@ export default function OrderDetails() {
                 <img src={`/uploads/${order.designImage}`} alt="Design" style={{ width: "100%", borderRadius: 8, maxHeight: 180, objectFit: "cover" }} />
             </div>
         )}
+
+        <div className="order-tracker" style={{ margin: "24px 0 16px 0" }}>
+           {ORDER_STATUS_STEPS.map((step, i) => (
+               <div key={step} className={`tracker-step ${i < currentOverallStep ? "done" : i === currentOverallStep ? "active" : ""}`}>
+                 <div className="tracker-dot">
+                    {i < currentOverallStep ? <i className="fa-solid fa-check" /> : ORDER_STEP_ICONS[i] === "🧵" ? <span style={{ fontSize: "16px" }}>🧵</span> : <i className={`fa-solid ${ORDER_STEP_ICONS[i]}`} />}
+                 </div>
+                 <div className="tracker-label" style={{ fontSize: 10 }}>{step}</div>
+               </div>
+           ))}
+        </div>
       </div>
+      
+      {order.orderStatus === "Challan Generated" && (
+         <div className="card" style={{ marginBottom: 20, background: "var(--primary-pale)", border: "1px dashed var(--primary)" }}>
+            <h3 style={{ margin: "0 0 12px 0", color: "var(--primary)" }}>Estimate (Challan) Action Required</h3>
+            <p style={{ fontSize: 14 }}>Your order estimate has been generated. The total cost is <strong>₹{order.totalAmount?.toFixed(2)}</strong>.</p>
+            <p style={{ fontSize: 14, marginBottom: 16 }}>Please pay the 35% advance amount (<strong>₹{order.advanceAmount?.toFixed(2)}</strong>) to confirm your order.</p>
+            <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
+               <button className="btn btn-primary" onClick={() => handlePayment("advance")}>Pay Advance Online</button>
+               <button className="btn btn-outline" onClick={async () => {
+                  try {
+                     const res = await orderAPI.downloadChallan(order._id);
+                     const url = window.URL.createObjectURL(new Blob([res.data]));
+                     const link = document.createElement("a");
+                     link.href = url;
+                     link.setAttribute("download", `EST-${order.orderNumber}.pdf`);
+                     document.body.appendChild(link);
+                     link.click();
+                     link.remove();
+                  } catch (err) {
+                     setMsg("Failed to download Challan");
+                  }
+               }}>
+                  <i className="fa-solid fa-file-pdf"></i> View Challan
+               </button>
+            </div>
+         </div>
+      )}
+
+      {(order.orderStatus === "Ready" && order.paymentStatus !== "Paid" && !order.codSelected) && (
+         <div className="card" style={{ marginBottom: 20, background: "var(--primary-pale)", border: "1px dashed var(--primary)" }}>
+            <h3 style={{ margin: "0 0 12px 0", color: "var(--primary)" }}>Final Payment Required</h3>
+            <p style={{ fontSize: 14, marginBottom: 16 }}>Your order is ready! Please select a payment method for the remaining balance. Once paid or confirmed you can collect or await delivery.</p>
+            <div style={{ display: "flex", gap: 12 }}>
+               <button className="btn btn-primary" onClick={() => handlePayment("final")}>Pay Full Remaining Online</button>
+               <button className="btn btn-outline" onClick={handleCOD}>Choose Cash on Delivery (+₹50)</button>
+            </div>
+         </div>
+      )}
+
+      {(order.paymentStatus === "Paid" || order.codSelected) && order.orderStatus === "Ready" && (
+         <div className="card" style={{ marginBottom: 20, background: "var(--bg)", border: "1px solid var(--border)" }}>
+            <h3 style={{ margin: "0 0 12px 0", color: "var(--primary)", fontSize: 16 }}><i className="fa-solid fa-check-circle" style={{ color: "green", marginRight: 8 }} />Payment Complete</h3>
+            <p style={{ fontSize: 13, color: "var(--text-gray)" }}>
+              {order.codSelected ? "You have chosen Cash on Delivery. Please pay the remaining amount at the time of delivery/pickup." : "Your final payment has been successfully received!"}
+            </p>
+         </div>
+      )}
 
       <div className="section-title" style={{ marginTop: 32, marginBottom: 16 }}>Items Included</div>
 
       <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
           {order.items && order.items.map((item, index) => {
-              const currentStep = statusSteps.indexOf(item.status);
-              
               return (
                   <div key={item._id} className="card" style={{ padding: 20, borderLeft: "4px solid var(--primary)" }}>
                       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12 }}>
@@ -148,23 +223,6 @@ export default function OrderDetails() {
                               </div>
                           </div>
                           <span className={`badge badge-${item.status.toLowerCase()}`}>{item.status}</span>
-                      </div>
-
-                      <div className="order-tracker" style={{ margin: "16px 0 24px 0" }}>
-                        {statusSteps.map((step, i) => (
-                            <div key={step} className={`tracker-step ${i < currentStep ? "done" : i === currentStep ? "active" : ""}`}>
-                            <div className="tracker-dot">
-                                {i < currentStep ? (
-                                    <i className="fa-solid fa-check" />
-                                ) : stepIcons[i] === "🧵" ? (
-                                    <span style={{ fontSize: "16px" }}>🧵</span>
-                                ) : (
-                                    <i className={`fa-solid ${stepIcons[i]}`} />
-                                )}
-                            </div>
-                            <div className="tracker-label">{step}</div>
-                            </div>
-                        ))}
                       </div>
 
                       {item.specialInstructions && (

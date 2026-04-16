@@ -27,6 +27,7 @@ export default function AdminOrderDetails() {
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(true);
   const [updatingOrder, setUpdatingOrder] = useState(false);
+  const [generatingChallan, setGeneratingChallan] = useState(false);
   const [notes, setNotes] = useState("");
   const [deliveryDate, setDeliveryDate] = useState("");
   const [msg, setMsg] = useState({ type: "", text: "" });
@@ -115,6 +116,29 @@ export default function AdminOrderDetails() {
     }
   };
 
+  const handleGenerateChallan = async () => {
+    // Validate if all items have prices updated
+    const itemsConfig = order.items.map(item => ({
+      itemId: item._id,
+      price: itemUpdates[item._id]?.price || 0
+    }));
+
+    if (itemsConfig.some(ic => ic.price <= 0)) {
+       return showMsg("error", "Please provide a valid price (> 0) for all items before generating challan.");
+    }
+
+    setGeneratingChallan(true);
+    try {
+      await orderAPI.generateChallan(order._id, { itemsConfig });
+      showMsg("success", "Challan generated and email sent to customer!");
+      fetchOrder();
+    } catch (err) {
+      showMsg("error", err.response?.data?.message || "Failed to generate challan");
+    } finally {
+      setGeneratingChallan(false);
+    }
+  };
+
   if (loading) return (
     <div style={{ display: "flex", justifyContent: "center", padding: 60 }}>
       <i className="fa-solid fa-spinner fa-spin" style={{ fontSize: 32, color: "var(--primary)" }} />
@@ -150,6 +174,8 @@ export default function AdminOrderDetails() {
             { label: "Email", value: customer?.email },
             { label: "Phone", value: customer?.phone },
             { label: "Address", value: customer?.address || "—" },
+            { label: "Payment Status", value: order?.paymentStatus || "Pending" },
+            { label: "Final Payment Mode", value: order?.paymentStatus === "Paid" ? "Online" : order?.codSelected ? "Cash on Delivery" : "—" },
           ].map((r) => (
             <div key={r.label} style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", borderBottom: "1px solid var(--border)", fontSize: 14 }}>
               <span style={{ color: "var(--text-gray)" }}>{r.label}</span>
@@ -196,6 +222,18 @@ export default function AdminOrderDetails() {
             <div style={{ marginTop: 12 }}>
               <div style={{ fontSize: 12, color: "var(--text-gray)", marginBottom: 6 }}>Global Order Design Reference</div>
               <img src={`/uploads/${order.designImage}`} alt="Design" style={{ width: "100%", borderRadius: 8, maxHeight: 160, objectFit: "cover" }} />
+            </div>
+          )}
+
+          {order.orderStatus === "Price Pending" && (
+            <div style={{ marginTop: 24, padding: 16, background: "var(--primary-pale)", borderRadius: 8, border: "1px dashed var(--primary)" }}>
+              <h4 style={{ margin: "0 0 12px 0", color: "var(--primary)" }}>Generate Estimate (Challan)</h4>
+              <p style={{ fontSize: 13, color: "var(--text-gray)", marginBottom: 16 }}>
+                Please set the final price for each item below. Once all item prices are set, click below to generate the Challan and notify the customer to pay the 35% advance.
+              </p>
+              <button className="btn btn-primary" onClick={handleGenerateChallan} disabled={generatingChallan || updatingOrder}>
+                {generatingChallan ? "Generating..." : "Generate Challan"}
+              </button>
             </div>
           )}
         </div>
