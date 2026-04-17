@@ -47,10 +47,11 @@ const generateChallanPDF = (order, orderItems, customer) => {
        .text("Address: Shop no: 21, Gigev Park, Opposite Uttamnagar, Ratanpark Road, Bapunagar.", leftX, y + 54);
 
     // Right Header Text
-    doc.fillColor("#E0D3C8").font(regularFont).fontSize(10).text("CHALLAN / ESTIMATE", 400, y - 2, { align: "right", width: 160 });
-    doc.fillColor("#FFFFFF").font(boldFont).fontSize(22).text(`EST-${order.orderNumber}`, 400, y + 10, { align: "right", width: 160 });
-    doc.fillColor("#E0D3C8").font(regularFont).fontSize(11)
-       .text(new Date().toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" }), 400, y + 38, { align: "right", width: 160 });
+    doc.fillColor("#FFFFFF").font(boldFont).fontSize(22).text("CHALLAN", 400, y - 2, { align: "right", width: 160 });
+    
+    const orderDate = new Date(order.createdAt || Date.now()).toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" });
+    doc.fillColor("#E0D3C8").font(regularFont).fontSize(11).text(`Date: ${orderDate}`, 400, y + 28, { align: "right", width: 160 });
+    doc.fillColor("#E0D3C8").font(regularFont).fontSize(11).text(`ID: ${order.orderNumber}`, 400, y + 44, { align: "right", width: 160 });
 
     y = 150;
 

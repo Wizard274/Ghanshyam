@@ -80,9 +80,9 @@ export default function AdminOrderDetails() {
 
     setUpdatingOrder(true);
     try {
-      const res = await orderAPI.updateStatus(id, { notes, deliveryDate });
-      setOrder(res.data.order);
+      await orderAPI.updateStatus(id, { notes, deliveryDate });
       showMsg("success", `Order updated successfully!`);
+      fetchOrder(); // Reload to get fresh full populated object
       setTimeout(() => {
         document.getElementById("order-items-section")?.scrollIntoView({ behavior: "smooth", block: "start" });
       }, 100);
