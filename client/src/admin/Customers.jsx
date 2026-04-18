@@ -136,7 +136,15 @@ export default function Customers() {
                       </div>
                     </td>
                     <td style={{ color: "var(--text-gray)", fontSize: 13 }}>{c.phone}</td>
-                    <td style={{ color: "var(--text-gray)", fontSize: 13, maxWidth: 160 }}>{c.address || "—"}</td>
+                    <td style={{ color: "var(--text-gray)", fontSize: 13, maxWidth: 160 }}>
+                      {c.address ? (
+                        <a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(c.address)}`} target="_blank" rel="noreferrer" style={{ color: "var(--primary)", textDecoration: "none" }}>
+                          {c.address} <i className="fa-solid fa-up-right-from-square" style={{ fontSize: 10, marginLeft: 2 }} />
+                        </a>
+                      ) : (
+                        "—"
+                      )}
+                    </td>
                     <td style={{ color: "var(--text-gray)", fontSize: 13 }}>{new Date(c.createdAt).toLocaleDateString("en-IN")}</td>
                     <td>
                       <span className={`badge ${c.isVerified ? "badge-delivered" : "badge-pending"}`}>

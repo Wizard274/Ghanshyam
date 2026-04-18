@@ -195,13 +195,21 @@ export default function AdminOrderDetails() {
             { label: "Name", value: customer?.name },
             { label: "Email", value: customer?.email },
             { label: "Phone", value: customer?.phone },
-            { label: "Address", value: customer?.address || "—" },
+            { label: "Address", value: customer?.address || "—", isAddress: true },
             { label: "Payment Status", value: order?.paymentStatus || "Pending" },
-            { label: "Final Payment Mode", value: order?.paymentStatus === "Paid" ? "Online" : order?.codSelected ? "Cash on Delivery" : "—" },
+            { label: "Final Payment Mode", value: order?.paymentStatus === "Paid" ? order?.paymentMethod : order?.codSelected ? "Cash on Delivery" : "—" },
           ].map((r) => (
             <div key={r.label} style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", borderBottom: "1px solid var(--border)", fontSize: 14 }}>
               <span style={{ color: "var(--text-gray)" }}>{r.label}</span>
-              <span style={{ fontWeight: 500 }}>{r.value}</span>
+              <span style={{ fontWeight: 500, textAlign: "right", maxWidth: "60%" }}>
+                {r.isAddress && customer?.address ? (
+                  <a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(customer.address)}`} target="_blank" rel="noreferrer" style={{ color: "var(--primary)", textDecoration: "none" }}>
+                    {r.value} <i className="fa-solid fa-up-right-from-square" style={{ fontSize: 11, marginLeft: 4 }} />
+                  </a>
+                ) : (
+                  r.value
+                )}
+              </span>
             </div>
           ))}
         </div>
