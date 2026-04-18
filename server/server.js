@@ -38,15 +38,15 @@ mongoose
   .catch((err) => console.error("❌ MongoDB Error:", err));
 
 // Serve React production build
-if (process.env.NODE_ENV === "production" || process.env.RENDER) {
-  const buildPath = path.join(__dirname, "../client/build");
-  app.use(express.static(buildPath));
-  app.get("*", (req, res) => {
-    if (req.originalUrl.startsWith('/api')) {
-       return res.status(404).json({ success: false, message: "API route not found" });
-    }
-    res.sendFile(path.join(buildPath, "index.html"));
-  });
-}
+// if (process.env.NODE_ENV === "production" || process.env.RENDER) {
+//   const buildPath = path.join(__dirname, "../client/build");
+//   app.use(express.static(buildPath));
+//   app.get("*", (req, res) => {
+//     if (req.originalUrl.startsWith('/api')) {
+//        return res.status(404).json({ success: false, message: "API route not found" });
+//     }
+//     res.sendFile(path.join(buildPath, "index.html"));
+//   });
+// }
 
 // touch for nodemon restart
