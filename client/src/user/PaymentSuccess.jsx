@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { paymentAPI } from "../services/api";
 
@@ -12,6 +12,7 @@ export default function PaymentSuccess() {
   const [status, setStatus] = useState("loading"); // loading, otp, success, error
   const [msg, setMsg] = useState("");
   const [otp, setOtp] = useState("");
+  const hasTriggered = useRef(false);
 
   useEffect(() => {
     if (!sessionId || !orderId || !type) {
@@ -20,8 +21,10 @@ export default function PaymentSuccess() {
         return;
     }
     
-    // Automatically trigger OTP sending
-    triggerOTP();
+    if (!hasTriggered.current) {
+        hasTriggered.current = true;
+        triggerOTP();
+    }
   }, [sessionId, orderId, type]);
 
   const triggerOTP = async () => {

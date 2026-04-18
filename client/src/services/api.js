@@ -43,6 +43,7 @@ export const orderAPI = {
   getStats: () => API.get("/orders/stats"),
   generateChallan: (id, data) => API.post(`/orders/${id}/challan`, data),
   downloadChallan: (id) => API.get(`/orders/${id}/challan/pdf`, { responseType: "blob" }),
+  assignWorker: (id, itemId, data) => API.put(`/orders/${id}/items/${itemId}/assign`, data),
 };
 
 export const paymentAPI = {
@@ -70,6 +71,9 @@ export const userAPI = {
   getCustomerById: (id) => API.get(`/users/customers/${id}`),
   createCustomer: (data) => API.post("/users/customers", data),
   deleteCustomer: (id) => API.delete(`/users/customers/${id}`),
+  getAllWorkers: (params) => API.get("/users/workers", { params }),
+  createWorker: (data) => API.post("/users/workers", data),
+  deleteWorker: (id) => API.delete(`/users/workers/${id}`),
 };
 
 export const contactAPI = {
@@ -84,6 +88,11 @@ export const appointmentAPI = {
   getAdminSlots: (date) => API.get(`/appointments/admin-slots${date ? `?date=${date}` : ""}`),
   deleteSlot: (id) => API.delete(`/appointments/slots/${id}`),
   getAll: (params) => API.get("/appointments/all", { params }),
+};
+
+export const workerAPI = {
+  getAssignedItems: () => API.get("/worker/assigned-items"),
+  updateItemStatus: (itemId, data) => API.put(`/worker/items/${itemId}/status`, data),
 };
 
 export default API;

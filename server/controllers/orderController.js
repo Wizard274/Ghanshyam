@@ -576,8 +576,25 @@ const downloadChallanPDF = async (req, res) => {
   }
 };
 
+const assignWorker = async (req, res) => {
+  try {
+    const { itemId } = req.params;
+    const { workerId } = req.body;
+    
+    const item = await OrderItem.findById(itemId);
+    if (!item) return res.status(404).json({ success: false, message: "Item not found" });
+
+    item.assignedWorkerId = workerId || null;
+    await item.save();
+
+    res.json({ success: true, message: "Worker assigned successfully", item });
+  } catch (err) {
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+};
+
 module.exports = {
   createOrder, getUserOrders, getOrderById, getAllOrders, getAllItems,
   updateOrderStatus, updateItemStatus, updateMeasurement, adminCreateOrder,
-  deleteOrder, getStats, upload, generateChallan, downloadChallanPDF
+  deleteOrder, getStats, upload, generateChallan, downloadChallanPDF, assignWorker
 };

@@ -28,11 +28,11 @@ export default function UserDashboard() {
 
   const pieData = stats
     ? [
-        { name: "Pending", value: stats.pending },
-        { name: "Cutting", value: 0 },
-        { name: "Stitching", value: stats.stitching },
-        { name: "Ready", value: stats.ready },
-        { name: "Delivered", value: stats.delivered },
+        { name: "Pending", value: stats.pending || 0 },
+        { name: "Cutting", value: stats.cutting || 0 },
+        { name: "Stitching", value: stats.stitching || 0 },
+        { name: "Ready", value: stats.ready || 0 },
+        { name: "Delivered", value: stats.delivered || 0 },
       ].filter((d) => d.value > 0)
     : [];
 
@@ -52,7 +52,7 @@ export default function UserDashboard() {
   const statCards = [
     { key: "total", icon: "fa-list", label: "Total Orders", value: stats?.total || 0, cls: "total" },
     { key: "pending", icon: "fa-clock", label: "Pending", value: stats?.pending || 0, cls: "pending" },
-    { key: "stitching", icon: "🧵", label: "In Progress", value: stats?.stitching || 0, cls: "stitching" },
+    { key: "in-progress", icon: "🧵", label: "In Progress", value: (stats?.cutting || 0) + (stats?.stitching || 0), cls: "stitching" },
     { key: "ready", icon: "fa-check-circle", label: "Ready", value: stats?.ready || 0, cls: "ready" },
     { key: "delivered", icon: "fa-truck", label: "Delivered", value: stats?.delivered || 0, cls: "delivered" },
     { key: "invoices", icon: "fa-file-invoice", label: "Invoices", value: stats?.invoices || 0, cls: "invoices" },

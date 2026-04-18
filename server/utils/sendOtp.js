@@ -65,4 +65,43 @@ const sendOTPEmail = async (email, otp, type = "register") => {
   return otp;
 };
 
-module.exports = { generateOTP, sendOTPEmail };
+const sendWorkerWelcomeEmail = async (email, password) => {
+  const transporter = nodemailer.createTransport({
+    service: "gmail",
+    auth: {
+      user: process.env.EMAIL_USER,
+      pass: process.env.EMAIL_PASS,
+    },
+  });
+
+  const html = `
+    <div style="font-family: 'Segoe UI', sans-serif; max-width: 600px; margin: 0 auto; background: #fff; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 24px rgba(0,0,0,0.08);">
+      <div style="background: linear-gradient(135deg, #1E3A8A 0%, #3B82F6 100%); padding: 32px; text-align: center;">
+        <h1 style="color: #fff; margin: 0; font-size: 24px; letter-spacing: 1px;">ઘનશ્યામ Ladies Tailor</h1>
+      </div>
+      <div style="padding: 40px 32px; text-align: left;">
+        <h2 style="color: #333; font-size: 20px; margin-bottom: 8px;">Welcome to the Team!</h2>
+        <p style="color: #666; font-size: 15px; margin-bottom: 24px;">
+          Your worker profile has been successfully created. You can log into the worker dashboard using the credentials below:
+        </p>
+        <div style="background: #EFF6FF; border: 1px solid #3B82F6; border-radius: 8px; padding: 16px; margin-bottom: 24px;">
+          <p style="margin: 0 0 8px; color: #333;"><strong>Email (ID):</strong> ${email}</p>
+          <p style="margin: 0; color: #333;"><strong>Initial Password:</strong> ${password}</p>
+        </div>
+        <p style="color: #EAB308; font-weight: 600; font-size: 14px;">Note: Change your password after your first login to keep your account secure.</p>
+      </div>
+      <div style="background: #f9f5f2; padding: 16px; text-align: center;">
+        <p style="color: #aaa; font-size: 12px; margin: 0;">© 2026 ઘનશ્યામ Ladies Tailor. All rights reserved.</p>
+      </div>
+    </div>
+  `;
+
+  await transporter.sendMail({
+    from: `"ઘનશ્યામ Ladies Tailor" <${process.env.EMAIL_USER}>`,
+    to: email,
+    subject: "Your Worker Account Created - ઘનશ્યામ Ladies Tailor",
+    html,
+  });
+};
+
+module.exports = { generateOTP, sendOTPEmail, sendWorkerWelcomeEmail };

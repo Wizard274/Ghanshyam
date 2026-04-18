@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
-import { orderAPI, invoiceAPI } from "../services/api";
+import { orderAPI, invoiceAPI, userAPI } from "../services/api";
 import "../styles/dashboard.css";
 import "../styles/form.css";
 
@@ -36,9 +36,21 @@ export default function AdminOrderDetails() {
   const [itemMeasurements, setItemMeasurements] = useState({});
   const [editMeasureState, setEditMeasureState] = useState({});
 
+  const [workers, setWorkers] = useState([]);
+
   useEffect(() => {
     fetchOrder();
+    fetchWorkers();
   }, [id]);
+
+  const fetchWorkers = async () => {
+    try {
+      const res = await userAPI.getAllWorkers();
+      setWorkers(res.data.workers || []);
+    } catch (err) {
+      console.error("Failed to fetch workers", err);
+    }
+  };
 
   const fetchOrder = () => {
     orderAPI.getById(id).then((res) => {
@@ -113,6 +125,16 @@ export default function AdminOrderDetails() {
       fetchOrder();
     } catch (err) {
       showMsg("error", err.response?.data?.message || "Failed to update measurements");
+    }
+  };
+
+  const handleAssignWorker = async (itemId, workerId) => {
+    try {
+      await orderAPI.assignWorker(id, itemId, { workerId });
+      showMsg("success", "Worker assigned successfully!");
+      fetchOrder();
+    } catch (err) {
+      showMsg("error", err.response?.data?.message || "Failed to assign worker");
     }
   };
 
@@ -248,6 +270,13 @@ export default function AdminOrderDetails() {
           const iMeasure = itemMeasurements[item._id] || {};
           const isEditingMeasure = editMeasureState[item._id] || false;
 
+          // Checking if advance is paid
+          const hasPaidAdvance = ["Partial", "Paid"].includes(order.paymentStatus) || order.paymentStatus === "Online";
+          // Allow assignment/status changes only if paid advance, or if strictly doing measurement.
+          const isMeasurementPhase = order.orderStatus === "Measurement Scheduled";
+          const canAssignWorker = hasPaidAdvance || isMeasurementPhase;
+          const canModifyStatus = hasPaidAdvance || isMeasurementPhase;
+
           return (
             <div key={item._id} className="card" style={{ borderLeft: "4px solid var(--primary)", padding: 24 }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 16 }}>
@@ -287,10 +316,16 @@ export default function AdminOrderDetails() {
                   <div style={{ display: "flex", gap: 16, alignItems: "flex-end", flexWrap: "wrap" }}>
                     <div className="form-group" style={{ margin: 0, flex: 1 }}>
                         <label style={{ fontSize: 12 }}>Update Status</label>
-                        <select className="form-control" value={iUpdate.status} 
-                            onChange={(e) => setItemUpdates({...itemUpdates, [item._id]: {...iUpdate, status: e.target.value}})}>
-                            {statusSteps.map((s) => <option key={s} value={s}>{s}</option>)}
+                        <select 
+                            className="form-control" 
+                            value={canModifyStatus ? iUpdate.status : "Pending"} 
+                            onChange={(e) => setItemUpdates({...itemUpdates, [item._id]: {...iUpdate, status: e.target.value}})}
+                            disabled={!canModifyStatus}
+                        >
+                            <option value="Pending">Pending</option>
+                            {statusSteps.filter(s => s !== "Pending").map((s) => <option key={s} value={s}>{s}</option>)}
                         </select>
+                        {!canModifyStatus && <div style={{ fontSize: 11, color: "var(--danger)", marginTop: 4 }}>Locked pending advance payment</div>}
                     </div>
                     <div className="form-group" style={{ margin: 0, flex: 1 }}>
                         <label style={{ fontSize: 12 }}>Update Price (₹)</label>
@@ -303,6 +338,24 @@ export default function AdminOrderDetails() {
                         </button>
                     </div>
                   </div>
+              </div>
+
+              {/* Worker Assignment */}
+              <div style={{ background: "var(--primary-pale)", padding: "12px 16px", borderRadius: 8, marginBottom: 20, display: "flex", alignItems: "center", gap: 16 }}>
+                 <label style={{ fontSize: 13, fontWeight: 600 }}>Assigned Worker:</label>
+                 <select 
+                   className="form-control" 
+                   style={{ width: "auto", minWidth: 200, padding: "6px 10px", fontSize: 13 }}
+                   value={item.assignedWorkerId?._id || item.assignedWorkerId || ""}
+                   onChange={(e) => handleAssignWorker(item._id, e.target.value)}
+                   disabled={!canAssignWorker}
+                 >
+                   <option value="">-- Unassigned --</option>
+                   {workers.map(w => (
+                     <option key={w._id} value={w._id}>{w.name} ({w.phone})</option>
+                   ))}
+                 </select>
+                 {!canAssignWorker && <span style={{ fontSize: 12, color: "var(--danger)" }}><i className="fa-solid fa-lock" style={{ marginRight: 4 }} />Waiting for advance payment</span>}
               </div>
 
               {item.specialInstructions && (

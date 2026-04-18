@@ -411,7 +411,13 @@ export default function AdminCreateOrder() {
                   </div>
                   <div className="form-group">
                       <label>Phone <span className="required">*</span></label>
-                      <input className="form-control" value={newCustomerForm.phone} onChange={e => setNewCustomerForm({...newCustomerForm, phone: e.target.value})} placeholder="Mobile number" />
+                      <input 
+                          className="form-control" 
+                          value={newCustomerForm.phone} 
+                          onChange={e => setNewCustomerForm({...newCustomerForm, phone: e.target.value.replace(/\D/g, '').slice(0, 10)})} 
+                          placeholder="10 digit mobile number" 
+                          maxLength="10"
+                      />
                   </div>
               </div>
               

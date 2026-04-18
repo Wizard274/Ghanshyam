@@ -4,7 +4,7 @@ const { protect, adminOnly } = require("../middleware/authMiddleware");
 const {
   createOrder, getUserOrders, getOrderById, getAllOrders, getAllItems,
   updateOrderStatus, updateItemStatus, updateMeasurement, adminCreateOrder,
-  deleteOrder, getStats, upload, generateChallan, downloadChallanPDF
+  deleteOrder, getStats, upload, generateChallan, downloadChallanPDF, assignWorker
 } = require("../controllers/orderController");
 
 router.get("/stats", protect, getStats);
@@ -18,6 +18,7 @@ router.get("/:id/challan/pdf", protect, downloadChallanPDF);
 router.post("/:id/challan", protect, adminOnly, generateChallan);
 router.put("/:id/status", protect, adminOnly, updateOrderStatus);
 router.put("/:id/items/:itemId/status", protect, adminOnly, updateItemStatus);
+router.put("/:id/items/:itemId/assign", protect, adminOnly, assignWorker);
 router.put("/:id/measurement", protect, updateMeasurement);
 router.delete("/:id", protect, adminOnly, deleteOrder);
 

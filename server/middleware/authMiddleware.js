@@ -22,4 +22,11 @@ const adminOnly = (req, res, next) => {
   next();
 };
 
-module.exports = { protect, adminOnly };
+const workerOnly = (req, res, next) => {
+  if (req.user?.role !== "worker") {
+    return res.status(403).json({ success: false, message: "Worker access only" });
+  }
+  next();
+};
+
+module.exports = { protect, adminOnly, workerOnly };

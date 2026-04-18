@@ -2,6 +2,7 @@ const User = require("../models/userModel");
 const Order = require("../models/orderModel");
 const Invoice = require("../models/invoiceModel");
 const bcrypt = require("bcryptjs");
+const { sendWorkerWelcomeEmail } = require("../utils/sendOtp");
 
 const getProfile = async (req, res) => {
   try {
@@ -132,4 +133,70 @@ const deleteCustomer = async (req, res) => {
   }
 };
 
-module.exports = { getProfile, updateProfile, changePassword, getAllCustomers, getCustomerById, createCustomer, deleteCustomer };
+const getAllWorkers = async (req, res) => {
+  try {
+    const workers = await User.find({ role: "worker" }).select("-password").sort({ createdAt: -1 });
+    res.json({ success: true, workers });
+  } catch (err) {
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+};
+
+const createWorker = async (req, res) => {
+  try {
+    let { name, phone, email, address, password } = req.body;
+    if (!name || !phone || !email || !password) return res.status(400).json({ success: false, message: "Name, phone, email, and password are required" });
+
+    phone = phone.replace(/\D/g, "");
+
+    const existingPhone = await User.findOne({ phone });
+    if (existingPhone) return res.status(400).json({ success: false, message: "A user with this phone number already exists" });
+
+    const existingEmail = await User.findOne({ email });
+    if (existingEmail) return res.status(400).json({ success: false, message: "Email already exists" });
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    const newWorker = await User.create({
+      name,
+      phone,
+      email,
+      address: address || "",
+      password: hashedPassword,
+      isVerified: true,
+      role: "worker"
+    });
+
+    const workerData = newWorker.toObject();
+    delete workerData.password;
+    
+    // Send welcome email with credentials
+    try {
+      await sendWorkerWelcomeEmail(email, password);
+    } catch (emailErr) {
+      console.error("Failed to send welcome email:", emailErr);
+    }
+    
+    res.status(201).json({ success: true, message: "Worker created successfully", worker: workerData });
+  } catch (err) {
+    if (err.code === 11000) {
+      const duplicateField = Object.keys(err.keyPattern)[0];
+      return res.status(400).json({ success: false, message: `A user with this ${duplicateField} already exists` });
+    }
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+};
+
+const deleteWorker = async (req, res) => {
+  try {
+    const worker = await User.findById(req.params.id);
+    if (!worker || worker.role !== "worker") return res.status(404).json({ success: false, message: "Worker not found" });
+
+    await User.findByIdAndDelete(req.params.id);
+    res.json({ success: true, message: "Worker deleted successfully" });
+  } catch (err) {
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+};
+
+module.exports = { getProfile, updateProfile, changePassword, getAllCustomers, getCustomerById, createCustomer, deleteCustomer, getAllWorkers, createWorker, deleteWorker };

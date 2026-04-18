@@ -21,6 +21,7 @@ const measurementSchema = new mongoose.Schema({
 const orderItemSchema = new mongoose.Schema(
   {
     orderId: { type: mongoose.Schema.Types.ObjectId, ref: "Order", required: true },
+    assignedWorkerId: { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null },
     clothType: { type: String, required: true },
     customClothType: { type: String },
     fabricType: { type: String },

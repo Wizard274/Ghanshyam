@@ -24,6 +24,7 @@ import PaymentCancel from "./user/PaymentCancel";
 // Admin pages
 import AdminDashboard from "./admin/AdminDashboard";
 import Customers from "./admin/Customers";
+import ManageWorkers from "./admin/ManageWorkers";
 import AdminOrders from "./admin/AdminOrders";
 import AdminOrderDetails from "./admin/AdminOrderDetails";
 import AdminInvoices from "./admin/AdminInvoices";
@@ -36,6 +37,10 @@ import AdminCreateOrder from "./admin/AdminCreateOrder";
 // Layout
 import UserLayout from "./components/UserLayout";
 import AdminLayout from "./components/AdminLayout";
+import WorkerLayout from "./worker/WorkerLayout";
+import WorkerDashboard from "./worker/WorkerDashboard";
+import WorkerProfile from "./worker/WorkerProfile";
+import WorkerItemDetails from "./worker/WorkerItemDetails";
 
 const getUser = () => {
   try {
@@ -48,7 +53,11 @@ const getUser = () => {
 const ProtectedRoute = ({ children, role }) => {
   const user = getUser();
   if (!user) return <Navigate to="/login" replace />;
-  if (role && user.role !== role) return <Navigate to={user.role === "admin" ? "/admin" : "/dashboard"} replace />;
+  if (role && user.role !== role) {
+     if (user.role === "admin") return <Navigate to="/admin" replace />;
+     if (user.role === "worker") return <Navigate to="/worker/dashboard" replace />;
+     return <Navigate to="/dashboard" replace />;
+  }
   return children;
 };
 
@@ -76,9 +85,15 @@ export default function App() {
         <Route path="/payment-success" element={<ProtectedRoute role="user"><UserLayout><PaymentSuccess /></UserLayout></ProtectedRoute>} />
         <Route path="/payment-cancel" element={<ProtectedRoute role="user"><UserLayout><PaymentCancel /></UserLayout></ProtectedRoute>} />
 
+        {/* Worker */}
+        <Route path="/worker/dashboard" element={<ProtectedRoute role="worker"><WorkerLayout><WorkerDashboard /></WorkerLayout></ProtectedRoute>} />
+        <Route path="/worker/item/:id" element={<ProtectedRoute role="worker"><WorkerLayout><WorkerItemDetails /></WorkerLayout></ProtectedRoute>} />
+        <Route path="/worker/profile" element={<ProtectedRoute role="worker"><WorkerLayout><WorkerProfile /></WorkerLayout></ProtectedRoute>} />
+
         {/* Admin */}
         <Route path="/admin" element={<ProtectedRoute role="admin"><AdminLayout><AdminDashboard /></AdminLayout></ProtectedRoute>} />
         <Route path="/admin/customers" element={<ProtectedRoute role="admin"><AdminLayout><Customers /></AdminLayout></ProtectedRoute>} />
+        <Route path="/admin/workers" element={<ProtectedRoute role="admin"><AdminLayout><ManageWorkers /></AdminLayout></ProtectedRoute>} />
         <Route path="/admin/orders" element={<ProtectedRoute role="admin"><AdminLayout><AdminOrders /></AdminLayout></ProtectedRoute>} />
         <Route path="/admin/orders/:id" element={<ProtectedRoute role="admin"><AdminLayout><AdminOrderDetails /></AdminLayout></ProtectedRoute>} />
         <Route path="/admin/orders/create" element={<ProtectedRoute role="admin"><AdminLayout><AdminCreateOrder /></AdminLayout></ProtectedRoute>} />
