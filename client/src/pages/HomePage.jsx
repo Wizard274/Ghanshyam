@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import "../styles/navbar.css";
 import "../styles/home.css";
@@ -13,6 +13,8 @@ const services = [
 ];
 
 export default function HomePage() {
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+
   return (
     <div className="home-page">
       {/* Navbar */}
@@ -21,11 +23,16 @@ export default function HomePage() {
           ઘનશ્યામ Ladies Tailor
           <span>Precision and Perfection in Every Stitch</span>
         </div>
-        <div className="nav-links">
-          <a href="#services" className="nav-link">Services</a>
-          <a href="#contact" className="nav-link">Contact</a>
-          <Link to="/login" className="nav-link">Login</Link>
-          <Link to="/register" className="btn btn-primary btn-sm">Order Online</Link>
+
+        <button className="mobile-menu-btn" onClick={() => setIsMenuOpen(!isMenuOpen)}>
+          <i className={`fa-solid ${isMenuOpen ? "fa-xmark" : "fa-bars"}`} />
+        </button>
+
+        <div className={`nav-links ${isMenuOpen ? "open" : ""}`}>
+          <a href="#services" className="nav-link" onClick={() => setIsMenuOpen(false)}>Services</a>
+          <a href="#contact" className="nav-link" onClick={() => setIsMenuOpen(false)}>Contact</a>
+          <Link to="/login" className="nav-link" onClick={() => setIsMenuOpen(false)}>Login</Link>
+          <Link to="/register" className="btn btn-primary btn-sm" onClick={() => setIsMenuOpen(false)}>Order Online</Link>
         </div>
       </nav>
 
