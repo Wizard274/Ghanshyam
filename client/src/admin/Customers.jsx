@@ -138,12 +138,10 @@ export default function Customers() {
                     <td style={{ color: "var(--text-gray)", fontSize: 13 }}>{c.phone}</td>
                     <td style={{ color: "var(--text-gray)", fontSize: 13, maxWidth: 160 }}>
                       {c.address ? (
-                        <a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(c.address)}`} target="_blank" rel="noreferrer" style={{ color: "var(--primary)", textDecoration: "none" }}>
-                          {c.address} <i className="fa-solid fa-up-right-from-square" style={{ fontSize: 10, marginLeft: 2 }} />
+                        <a href={`https://maps.google.com/?q=${encodeURIComponent(c.address)}`} target="_blank" rel="noreferrer" style={{ color: "var(--primary)", textDecoration: "underline", display: "inline-flex", alignItems: "center" }} title="Open in Google Maps">
+                          <i className="fa-solid fa-location-dot" style={{ marginRight: 6, fontSize: 12 }} />{c.address}
                         </a>
-                      ) : (
-                        "—"
-                      )}
+                      ) : "—"}
                     </td>
                     <td style={{ color: "var(--text-gray)", fontSize: 13 }}>{new Date(c.createdAt).toLocaleDateString("en-IN")}</td>
                     <td>

@@ -26,14 +26,6 @@ app.use("/api/worker", require("./routes/workerRoutes"));
 // Health check
 app.get("/api/health", (req, res) => res.json({ status: "OK", message: "Ghanshyam Tailor API Running" }));
 
-// Serve static files in production
-if (process.env.NODE_ENV === "production" || process.env.RENDER) {
-  app.use(express.static(path.join(__dirname, "../client/build")));
-  app.get("*", (req, res) => {
-    res.sendFile(path.join(__dirname, "../client/build/index.html"));
-  });
-}
-
 // Connect to MongoDB
 mongoose
   .connect(process.env.MONGO_URI)
@@ -44,3 +36,17 @@ mongoose
     });
   })
   .catch((err) => console.error("❌ MongoDB Error:", err));
+
+// Serve React production build
+if (process.env.NODE_ENV === "production" || process.env.RENDER) {
+  const buildPath = path.join(__dirname, "../client/build");
+  app.use(express.static(buildPath));
+  app.get("*", (req, res) => {
+    if (req.originalUrl.startsWith('/api')) {
+       return res.status(404).json({ success: false, message: "API route not found" });
+    }
+    res.sendFile(path.join(buildPath, "index.html"));
+  });
+}
+
+// touch for nodemon restart
