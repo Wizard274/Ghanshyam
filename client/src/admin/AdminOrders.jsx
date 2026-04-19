@@ -26,7 +26,7 @@ export default function AdminOrders() {
     const handler = setTimeout(() => {
       setDebouncedSearch(search);
       setPage(1);
-    }, 2000);
+    }, 700);
     return () => clearTimeout(handler);
   }, [search]);
 

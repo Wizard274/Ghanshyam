@@ -18,7 +18,7 @@ export default function CustomerInvoices() {
     const handler = setTimeout(() => {
       setDebouncedSearch(search);
       setCurrentPage(1); // Reset page on new search
-    }, 2000);
+    }, 700);
     return () => clearTimeout(handler);
   }, [search]);
 

@@ -163,7 +163,7 @@ export default function PlaceOrder() {
                 <h4 style={{ margin: "0 0 16px 0", fontSize: 16 }}>Schedule Appointment</h4>
                 <div className="form-group">
                   <label>Select Date</label>
-                  <input className="form-control" type="date" min={new Date().toISOString().split("T")[0]} value={appointmentDate} onChange={e => setAppointmentDate(e.target.value)} />
+                  <input className="form-control" type="date" min={new Date(Date.now() + 86400000).toISOString().split("T")[0]} value={appointmentDate} onChange={e => setAppointmentDate(e.target.value)} />
                 </div>
                 {appointmentDate && (
                   <div className="form-group">
