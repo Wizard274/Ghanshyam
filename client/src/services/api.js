@@ -1,7 +1,8 @@
 import axios from "axios";
 
 const API = axios.create({
-  baseURL: "https://ghanshyam-t73d.onrender.com/api"
+  baseURL: "https://ghanshyam-t73d.onrender.com/api",
+  withCredentials: true
 });
 
 API.interceptors.request.use((config) => {
@@ -12,10 +13,24 @@ API.interceptors.request.use((config) => {
 
 API.interceptors.response.use(
   (res) => res,
-  (err) => {
-    if (err.response?.status === 401) {
-      localStorage.clear();
-      window.location.href = "/login";
+  async (err) => {
+    const originalRequest = err.config;
+    if (err.response?.status === 401 && !originalRequest._retry) {
+      if (originalRequest.url === "/auth/login" || originalRequest.url === "/auth/refresh") {
+        return Promise.reject(err);
+      }
+      originalRequest._retry = true;
+      try {
+        const res = await axios.post("https://ghanshyam-t73d.onrender.com/api/auth/refresh", {}, { withCredentials: true });
+        if (res.data.success) {
+          localStorage.setItem("token", res.data.token);
+          originalRequest.headers.Authorization = `Bearer ${res.data.token}`;
+          return API(originalRequest);
+        }
+      } catch (e) {
+        localStorage.clear();
+        window.location.href = "/login";
+      }
     }
     return Promise.reject(err);
   }
@@ -29,6 +44,8 @@ export const authAPI = {
   verifyResetOtp: (data) => API.post("/auth/verify-reset-otp", data),
   resetPassword: (data) => API.post("/auth/reset-password", data),
   resendOtp: (data) => API.post("/auth/resend-otp", data),
+  refresh: () => API.post("/auth/refresh"),
+  logout: () => API.post("/auth/logout"),
 };
 
 export const orderAPI = {

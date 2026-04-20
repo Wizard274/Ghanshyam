@@ -16,7 +16,8 @@ export default function UserLayout({ children }) {
   const navigate = useNavigate();
   const user = JSON.parse(localStorage.getItem("user") || "{}");
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    try { await authAPI.logout(); } catch(e){}
     localStorage.clear();
     navigate("/login");
   };

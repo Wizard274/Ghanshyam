@@ -12,6 +12,10 @@ const userSchema = new mongoose.Schema(
     otp: { type: String },
     otpExpire: { type: Date },
     otpType: { type: String, enum: ["register", "reset", "advance_payment", "final_payment", "worker_reset"] },
+    refreshToken: { type: String },
+    otpAttempts: { type: Number, default: 0 },
+    otpLockUntil: { type: Date },
+    lastOtpSentAt: { type: Date },
   },
   { timestamps: true }
 );

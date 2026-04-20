@@ -3,16 +3,28 @@ const mongoose = require("mongoose");
 const cors = require("cors");
 const path = require("path");
 const compression = require("compression");
+const cookieParser = require("cookie-parser");
 require("dotenv").config({ path: path.join(__dirname, ".env") });
+
+// General API Rate Limiter
+const rateLimit = require("express-rate-limit");
+const apiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // limit each IP to 100 requests per 15 minutes
+  standardHeaders: true,
+  legacyHeaders: false,
+});
 
 const app = express();
 
 // --- MIDDLEWARE ---
 app.use(compression());
+app.use(cookieParser());
 app.use(cors({ origin: process.env.CLIENT_URL || "http://localhost:3000", credentials: true }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
+app.use("/api/", apiLimiter);
 
 // --- API ROUTES FIRST ---
 app.use("/api/auth", require("./routes/authRoutes"));
