@@ -16,6 +16,7 @@ const apiLimiter = rateLimit({
 });
 
 const app = express();
+app.set("trust proxy", 1); // Trust Render's reverse proxy for rate-limiting X-Forwarded-For
 
 // --- MIDDLEWARE ---
 app.use(compression());
