@@ -11,6 +11,7 @@ export default function PaymentSuccess() {
   const type = searchParams.get("type"); // "advance" or "final"
 
   const [status, setStatus] = useState("loading"); // loading, otp, success, error
+  const [msg, setMsg] = useState("");
   const [otp, setOtp] = useState("");
   const hasTriggered = useRef(false);
 
