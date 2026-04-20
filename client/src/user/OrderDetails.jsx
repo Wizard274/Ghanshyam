@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { orderAPI, paymentAPI } from "../services/api";
+import toast from "react-hot-toast";
 import "../styles/dashboard.css";
 import "../styles/form.css";
 
@@ -23,8 +24,6 @@ export default function OrderDetails() {
   const navigate = useNavigate();
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [msg, setMsg] = useState("");
-
   const [itemMeasurements, setItemMeasurements] = useState({});
   const [editMeasureState, setEditMeasureState] = useState({});
   const [savingMeasures, setSavingMeasures] = useState({});
@@ -72,7 +71,7 @@ export default function OrderDetails() {
       // I'll skip editing for users right now, or just let them view for simplicity.
       // Actually let's assume they can view.
     } catch (err) {
-      setMsg(err.response?.data?.message || "Failed to update");
+      toast.error(err.response?.data?.message || "Failed to update");
     } finally {
       setSavingMeasures({...savingMeasures, [itemId]: false});
     }
@@ -86,7 +85,7 @@ export default function OrderDetails() {
        }
      } catch (err) {
        window.scrollTo(0, 0);
-       setMsg(err.response?.data?.message || "Failed to initiate payment");
+       toast.error(err.response?.data?.message || "Failed to initiate payment");
      }
   };
 
@@ -97,7 +96,7 @@ export default function OrderDetails() {
       setMsg("COD Selection Successful. Order is now pending delivery.");
       fetchOrder();
     } catch (err) {
-       setMsg(err.response?.data?.message || "Failed to choose COD");
+       toast.error(err.response?.data?.message || "Failed to choose COD");
     }
   };
 
@@ -126,8 +125,7 @@ export default function OrderDetails() {
         </span>
       </div>
 
-      {msg && <div className={`alert ${msg.includes("success") ? "alert-success" : "alert-error"}`}>{msg}</div>}
-
+      
       <div className="card" style={{ marginBottom: 20 }}>
         <div className="section-title">Order Information</div>
         {[
@@ -178,7 +176,7 @@ export default function OrderDetails() {
                      link.click();
                      link.remove();
                   } catch (err) {
-                     setMsg("Failed to download Challan");
+                     toast.error("Failed to download Challan");
                   }
                }}>
                   <i className="fa-solid fa-file-pdf"></i> View Challan

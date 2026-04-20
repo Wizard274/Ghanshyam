@@ -1,24 +1,21 @@
 import React, { useState } from "react";
 import { contactAPI } from "../services/api";
+import toast from "react-hot-toast";
 import "../styles/form.css";
 
 export default function Contact() {
   const user = JSON.parse(localStorage.getItem("user") || "{}");
   const [form, setForm] = useState({ name: user.name || "", phone: "", message: "" });
   const [loading, setLoading] = useState(false);
-  const [success, setSuccess] = useState("");
-  const [error, setError] = useState("");
-
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError(""); setSuccess("");
-    setLoading(true);
+    toast.error(""); setLoading(true);
     try {
       const res = await contactAPI.send(form);
-      setSuccess("Message sent! We will contact you soon. 🙏");
+      toast.success("Message sent! We will contact you soon. 🙏");
       setForm({ ...form, message: "", phone: "" });
     } catch (err) {
-      setError("Failed to send message. Please try again.");
+      toast.error("Failed to send message. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -79,8 +76,8 @@ export default function Contact() {
         <div className="card">
           <div className="form-section-title"><i className="fa-solid fa-paper-plane" style={{ marginRight: 8 }} />Send Us a Message</div>
 
-          {success && <div className="alert alert-success">{success}</div>}
-          {error && <div className="alert alert-error">{error}</div>}
+          
+          
 
           <form onSubmit={handleSubmit}>
             <div className="form-group">

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { userAPI } from "../services/api";
+import toast from "react-hot-toast";
 import "../styles/form.css";
 
 export default function Profile() {
@@ -8,7 +9,6 @@ export default function Profile() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [changingPass, setChangingPass] = useState(false);
-  const [msg, setMsg] = useState({ type: "", text: "" });
   const [tab, setTab] = useState("profile");
 
   useEffect(() => {
@@ -20,8 +20,7 @@ export default function Profile() {
 
   const showMsg = (type, text) => {
     setMsg({ type, text });
-    setTimeout(() => setMsg({ type: "", text: "" }), 3500);
-  };
+      };
 
   const handleProfileSave = async (e) => {
     e.preventDefault();
@@ -84,8 +83,7 @@ export default function Profile() {
         ))}
       </div>
 
-      {msg.text && <div className={`alert alert-${msg.type}`}>{msg.text}</div>}
-
+      
       {tab === "profile" ? (
         <div className="card" style={{ maxWidth: 560 }}>
           <div className="form-section-title"><i className="fa-solid fa-user" style={{ marginRight: 8 }} />Personal Information</div>

@@ -3,6 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { invoiceAPI } from "../services/api";
 import "../styles/dashboard.css";
 import "../styles/form.css";
+import toast from "react-hot-toast";
 
 export default function AdminInvoiceDetails() {
   const { id } = useParams();
@@ -12,7 +13,6 @@ export default function AdminInvoiceDetails() {
   const [editing, setEditing] = useState(false);
   const [editForm, setEditForm] = useState({});
   const [saving, setSaving] = useState(false);
-  const [msg, setMsg] = useState({ type: "", text: "" });
 
   useEffect(() => {
     invoiceAPI.getById(id).then((res) => {
@@ -37,7 +37,7 @@ export default function AdminInvoiceDetails() {
       document.body.appendChild(link);
       link.click();
       link.remove();
-    } catch { alert("Download failed"); }
+    } catch { toast.error("Download failed"); }
   };
 
   const handleSave = async () => {
@@ -46,10 +46,9 @@ export default function AdminInvoiceDetails() {
       const res = await invoiceAPI.update(id, editForm);
       setInvoice(res.data.invoice);
       setEditing(false);
-      setMsg({ type: "success", text: "Invoice updated successfully!" });
-      setTimeout(() => setMsg({ type: "", text: "" }), 3000);
+      toast.success("Invoice updated successfully!");
     } catch (err) {
-      setMsg({ type: "error", text: "Update failed" });
+      toast.error("Update failed");
     } finally {
       setSaving(false);
     }
@@ -78,8 +77,6 @@ export default function AdminInvoiceDetails() {
           <button className="btn btn-primary" onClick={handleDownload}><i className="fa-solid fa-download" /> Download PDF</button>
         </div>
       </div>
-
-      {msg.text && <div className={`alert alert-${msg.type}`}>{msg.text}</div>}
 
       {editing && (
         <div className="card" style={{ marginBottom: 20 }}>

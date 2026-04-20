@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { authAPI } from "../services/api";
+import toast from "react-hot-toast";
 import "../styles/form.css";
 
 export default function VerifyOtp() {
@@ -10,7 +11,6 @@ export default function VerifyOtp() {
   const type = location.state?.type || "register";
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
   const [resendTimer, setResendTimer] = useState(60);
   const refs = useRef([]);
 
@@ -43,7 +43,7 @@ export default function VerifyOtp() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     const otpStr = otp.join("");
-    if (otpStr.length !== 6) return setError("Please enter complete OTP");
+    if (otpStr.length !== 6) return toast.error("Please enter complete OTP");
     setLoading(true);
     try {
       const endpoint = type === "reset" ? authAPI.verifyResetOtp : authAPI.verifyOtp;
@@ -58,7 +58,7 @@ export default function VerifyOtp() {
         }
       }
     } catch (err) {
-      setError(err.response?.data?.message || "Invalid OTP");
+      toast.error(err.response?.data?.message || "Invalid OTP");
     } finally {
       setLoading(false);
     }
@@ -69,9 +69,8 @@ export default function VerifyOtp() {
     try {
       await authAPI.resendOtp({ email });
       setResendTimer(60);
-      setError("");
-    } catch (err) {
-      setError("Failed to resend OTP");
+      } catch (err) {
+      toast.error("Failed to resend OTP");
     }
   };
 
@@ -90,7 +89,7 @@ export default function VerifyOtp() {
             <strong style={{ color: "var(--primary)" }}>{email}</strong>
           </p>
 
-          {error && <div className="alert alert-error">{error}</div>}
+          
 
           <form onSubmit={handleSubmit}>
             <div className="otp-inputs" onPaste={handlePaste}>

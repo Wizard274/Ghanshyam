@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { userAPI } from "../services/api";
+import toast from "react-hot-toast";
 import "../styles/dashboard.css";
 
 export default function Customers() {
@@ -15,8 +16,6 @@ export default function Customers() {
   
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [deleting, setDeleting] = useState(false);
-  const [msg, setMsg] = useState({ type: "", text: "" });
-
   useEffect(() => {
     const handler = setTimeout(() => {
       setDebouncedSearch(search);
@@ -47,10 +46,9 @@ export default function Customers() {
       await userAPI.deleteCustomer(id);
       setCustomers((prev) => prev.filter((c) => c._id !== id));
       setDeleteConfirm(null);
-      setMsg({ type: "success", text: "Customer deleted successfully" });
-      setTimeout(() => setMsg({ type: "", text: "" }), 3000);
-    } catch (err) {
-      setMsg({ type: "error", text: err.response?.data?.message || "Delete failed" });
+      toast.success("Customer deleted successfully");
+          } catch (err) {
+      toast.error(err.response?.data?.message || "Delete failed");
     } finally {
       setDeleting(false);
     }
@@ -92,8 +90,7 @@ export default function Customers() {
         </div>
       </div>
 
-      {msg.text && <div className={`alert alert-${msg.type}`}>{msg.text}</div>}
-
+      
       <div className="filter-bar">
         <div className="search-wrap">
           <i className="search-icon fa-solid fa-search" />

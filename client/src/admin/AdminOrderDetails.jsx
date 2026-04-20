@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { orderAPI, invoiceAPI, userAPI } from "../services/api";
+import toast from "react-hot-toast";
 import "../styles/dashboard.css";
 import "../styles/form.css";
 
@@ -30,7 +31,6 @@ export default function AdminOrderDetails() {
   const [generatingChallan, setGeneratingChallan] = useState(false);
   const [notes, setNotes] = useState("");
   const [deliveryDate, setDeliveryDate] = useState("");
-  const [msg, setMsg] = useState({ type: "", text: "" });
 
   const [itemUpdates, setItemUpdates] = useState({});
   const [itemMeasurements, setItemMeasurements] = useState({});
@@ -75,8 +75,8 @@ export default function AdminOrderDetails() {
   };
 
   const showMsg = (type, text) => {
-    setMsg({ type, text });
-    setTimeout(() => setMsg({ type: "", text: "" }), 3500);
+    if (type === "error") toast.error(text);
+    else toast.success(text);
   };
 
   const handleOrderUpdate = async () => {
@@ -184,8 +184,6 @@ export default function AdminOrderDetails() {
         </div>
         <span className={`badge badge-${(order.status || "Pending").toLowerCase()}`} style={{ marginLeft: "auto" }}>{order.status || "Pending"}</span>
       </div>
-
-      {msg.text && <div className={`alert alert-${msg.type}`}>{msg.text}</div>}
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20, marginBottom: 20 }}>
         {/* Customer Info */}

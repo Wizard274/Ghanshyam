@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { authAPI } from "../services/api";
+import toast from "react-hot-toast";
 import "../styles/form.css";
 
 export default function UserRegister() {
@@ -8,8 +9,6 @@ export default function UserRegister() {
   const [form, setForm] = useState({ name: "", phone: "", email: "", password: "", confirmPassword: "", address: "" });
   const [showPass, setShowPass] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-
   const handleChange = (e) => {
     const { name, value } = e.target;
     if (name === "phone") {
@@ -24,9 +23,8 @@ export default function UserRegister() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError("");
-    if (form.password !== form.confirmPassword) return setError("Passwords do not match");
-    if (form.password.length < 6) return setError("Password must be at least 6 characters");
+    if (form.password !== form.confirmPassword) return toast.error("Passwords do not match");
+    if (form.password.length < 6) return toast.error("Password must be at least 6 characters");
     setLoading(true);
     try {
       const res = await authAPI.register(form);
@@ -34,7 +32,7 @@ export default function UserRegister() {
         navigate("/verify-otp", { state: { email: form.email, type: "register" } });
       }
     } catch (err) {
-      setError(err.response?.data?.message || "Registration failed");
+      toast.error(err.response?.data?.message || "Registration failed");
     } finally {
       setLoading(false);
     }
@@ -52,7 +50,7 @@ export default function UserRegister() {
           <h2>Create Account</h2>
           <p className="auth-subtitle">Join us to place tailoring orders online</p>
 
-          {error && <div className="alert alert-error"><i className="fa-solid fa-circle-exclamation" style={{ marginRight: 8 }} />{error}</div>}
+          
 
           <form onSubmit={handleSubmit}>
             <div className="form-row">

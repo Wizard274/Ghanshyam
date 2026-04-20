@@ -1,17 +1,15 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { authAPI } from "../services/api";
+import toast from "react-hot-toast";
 import "../styles/form.css";
 
 export default function ForgotPassword() {
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError("");
     setLoading(true);
     try {
       const res = await authAPI.forgotPassword({ email });
@@ -19,7 +17,7 @@ export default function ForgotPassword() {
         navigate("/verify-otp", { state: { email, type: "reset" } });
       }
     } catch (err) {
-      setError(err.response?.data?.message || "Email not found");
+      toast.error(err.response?.data?.message || "Email not found");
     } finally {
       setLoading(false);
     }
@@ -37,7 +35,7 @@ export default function ForgotPassword() {
           <h2>Forgot Password?</h2>
           <p className="auth-subtitle">Enter your email and we'll send you an OTP to reset your password</p>
 
-          {error && <div className="alert alert-error">{error}</div>}
+          
 
           <form onSubmit={handleSubmit}>
             <div className="form-group">

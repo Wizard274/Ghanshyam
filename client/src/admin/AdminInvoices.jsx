@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { invoiceAPI } from "../services/api";
+import toast from "react-hot-toast";
 import "../styles/dashboard.css";
 
 export default function AdminInvoices() {
@@ -46,14 +47,14 @@ export default function AdminInvoices() {
       document.body.appendChild(link);
       link.click();
       link.remove();
-    } catch { alert("Download failed"); }
+    } catch { toast.error("Download failed"); }
   };
 
   const handleUpdatePayment = async (id, paymentStatus) => {
     try {
       await invoiceAPI.updatePayment(id, { paymentStatus });
       fetchInvoices(debouncedSearch, status, page);
-    } catch { alert("Update failed"); }
+    } catch { toast.error("Update failed"); }
   };
 
   const totalRevenue = invoices.filter((i) => i.paymentStatus === "Paid").reduce((s, i) => s + i.totalAmount, 0);

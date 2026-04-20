@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useRef } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { paymentAPI } from "../services/api";
+import toast from "react-hot-toast";
 
 export default function PaymentSuccess() {
   const [searchParams] = useSearchParams();
@@ -10,7 +11,6 @@ export default function PaymentSuccess() {
   const type = searchParams.get("type"); // "advance" or "final"
 
   const [status, setStatus] = useState("loading"); // loading, otp, success, error
-  const [msg, setMsg] = useState("");
   const [otp, setOtp] = useState("");
   const hasTriggered = useRef(false);
 
@@ -34,7 +34,7 @@ export default function PaymentSuccess() {
          setMsg(`Payment successful! An OTP has been sent to your email to confirm the ${type} payment.`);
      } catch (err) {
          setStatus("error");
-         setMsg(err.response?.data?.message || "Failed to send OTP after payment.");
+         toast.error(err.response?.data?.message || "Failed to send OTP after payment.");
      }
   };
 

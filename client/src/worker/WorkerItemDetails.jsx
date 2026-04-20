@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import { workerAPI } from "../services/api";
+import toast from "react-hot-toast";
 import "../styles/form.css";
 
 const STATUS_STEPS = ["Pending", "Cutting", "Stitching", "Ready"];
@@ -36,7 +37,7 @@ export default function WorkerItemDetails() {
       await workerAPI.updateItemStatus(item._id, { status: newStatus });
       setItem((prev) => ({ ...prev, status: newStatus }));
     } catch (err) {
-      alert(err.response?.data?.message || "Failed to update status");
+      toast.error(err.response?.data?.message || "Failed to update status");
     } finally {
       setUpdating(false);
     }

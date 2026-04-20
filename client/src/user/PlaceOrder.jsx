@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { orderAPI, appointmentAPI } from "../services/api";
+import toast from "react-hot-toast";
 import "../styles/form.css";
 import "../styles/dashboard.css";
 
@@ -49,9 +50,6 @@ export default function PlaceOrder() {
   const [fetchingSlots, setFetchingSlots] = useState(false);
   const [designImage, setDesignImage] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
-
   const handleItemChange = (i, field, value) => {
     const newItems = [...items];
     newItems[i][field] = value;
@@ -78,20 +76,20 @@ export default function PlaceOrder() {
           setSlots(res.data.slots);
           setSelectedSlot("");
         })
-        .catch(() => setError("Failed to load appointment slots"))
+        .catch(() => toast.error("Failed to load appointment slots"))
         .finally(() => setFetchingSlots(false));
     }
   }, [measurementType, appointmentDate]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if(items.length === 0) return setError("Please add at least one item.");
+    if(items.length === 0) return toast.error("Please add at least one item.");
 
     for(let i=0; i<items.length; i++) {
-        if(!items[i].clothType) return setError(`Please select a cloth type for Item ${i+1}`);
+        if(!items[i].clothType) return toast.error(`Please select a cloth type for Item ${i+1}`);
     }
 
-    setError(""); setLoading(true);
+    toast.error(""); setLoading(true);
     try {
       if (measurementType === "tailor" && !selectedSlot) {
         throw new Error("Please select an appointment slot for tailor measurement");
@@ -112,11 +110,11 @@ export default function PlaceOrder() {
 
       const res = await orderAPI.create(formData);
       if (res.data.success) {
-        setSuccess("Order placed successfully!");
+        toast.success("Order placed successfully!");
         setTimeout(() => navigate("/my-orders"), 1500);
       }
     } catch (err) {
-      setError(err.response?.data?.message || "Failed to place order");
+      toast.error(err.response?.data?.message || "Failed to place order");
     } finally {
       setLoading(false);
     }
@@ -134,8 +132,8 @@ export default function PlaceOrder() {
         </div>
       </div>
 
-      {error && <div className="alert alert-error"><i className="fa-solid fa-circle-exclamation" style={{ marginRight: 8 }} />{error}</div>}
-      {success && <div className="alert alert-success"><i className="fa-solid fa-check-circle" style={{ marginRight: 8 }} />{success}</div>}
+      
+      
 
       <form onSubmit={handleSubmit}>
         

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { invoiceAPI } from "../services/api";
+import toast from "react-hot-toast";
 import "../styles/dashboard.css";
 
 export default function CustomerInvoices() {
@@ -46,7 +47,7 @@ export default function CustomerInvoices() {
       link.remove();
       window.URL.revokeObjectURL(url);
     } catch (err) {
-      alert("Failed to download invoice");
+      toast.error("Failed to download invoice");
     }
   };
 

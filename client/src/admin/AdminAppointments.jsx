@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { appointmentAPI } from "../services/api";
+import toast from "react-hot-toast";
 
 export default function AdminAppointments() {
   const [appointments, setAppointments] = useState([]);
@@ -25,7 +26,6 @@ export default function AdminAppointments() {
   // Generate Slots Form state
   const [form, setForm] = useState({ date: "", startTime: "10:00 AM", endTime: "06:00 PM", intervalMinutes: 30, capacity: 1 });
   const [generating, setGenerating] = useState(false);
-  const [msg, setMsg] = useState("");
 
   useEffect(() => {
     if (tab === "appointments") {
@@ -58,10 +58,10 @@ export default function AdminAppointments() {
           const res = await appointmentAPI.generateSlots(form);
           setMsg(res.data.message);
           fetchSlots();
-          setTimeout(() => setMsg(""), 3000);
+          
       } catch (err) {
-          setMsg(err.response?.data?.message || "Generation failed.");
-          setTimeout(() => setMsg(""), 3000);
+          toast.error(err.response?.data?.message || "Generation failed.");
+          
       } finally {
           setGenerating(false);
       }
@@ -73,7 +73,7 @@ export default function AdminAppointments() {
         await appointmentAPI.deleteSlot(id);
         fetchSlots();
     } catch(err) {
-        alert(err.response?.data?.message || "Failed to delete slot");
+        toast.error(err.response?.data?.message || "Failed to delete slot");
     }
   };
 
@@ -96,8 +96,6 @@ export default function AdminAppointments() {
             </button>
         </div>
       </div>
-
-      {msg && <div className={`alert ${msg.includes("failed") ? "alert-error" : "alert-success"}`}>{msg}</div>}
 
       {tab === "appointments" && (
           <div className="card" style={{ padding: 0, overflow: "hidden" }}>

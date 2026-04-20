@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { userAPI, authAPI } from "../services/api";
+import toast from "react-hot-toast";
 import "../styles/dashboard.css";
 import "../styles/form.css";
 
@@ -8,8 +9,6 @@ export default function ManageWorkers() {
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [formData, setFormData] = useState({ name: "", phone: "", email: "", address: "", password: "", confirmPassword: "" });
-  const [error, setError] = useState("");
-
   useEffect(() => {
     fetchWorkers();
   }, []);
@@ -28,12 +27,11 @@ export default function ManageWorkers() {
 
   const handleCreateWorker = async (e) => {
     e.preventDefault();
-    setError("");
     if (formData.password !== formData.confirmPassword) {
-        return setError("Passwords do not match");
+        return toast.error("Passwords do not match");
     }
     if (formData.password.length < 6) {
-        return setError("Password must be at least 6 characters");
+        return toast.error("Password must be at least 6 characters");
     }
     try {
       await userAPI.createWorker(formData);
@@ -41,7 +39,7 @@ export default function ManageWorkers() {
       setFormData({ name: "", phone: "", email: "", address: "", password: "", confirmPassword: "" });
       fetchWorkers();
     } catch (err) {
-      setError(err.response?.data?.message || "Failed to create worker");
+      toast.error(err.response?.data?.message || "Failed to create worker");
     }
   };
 
@@ -51,7 +49,7 @@ export default function ManageWorkers() {
       await userAPI.deleteWorker(id);
       fetchWorkers();
     } catch (err) {
-      alert(err.response?.data?.message || "Failed to delete worker");
+      toast.error(err.response?.data?.message || "Failed to delete worker");
     }
   };
 
@@ -108,7 +106,7 @@ export default function ManageWorkers() {
               <h2>Add Worker</h2>
               <button className="btn-close" onClick={() => setShowModal(false)}><i className="fa-solid fa-times" /></button>
             </div>
-            {error && <div className="alert alert-error">{error}</div>}
+            
             <form onSubmit={handleCreateWorker}>
               <div className="form-group">
                 <label>Name</label>

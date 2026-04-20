@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { invoiceAPI } from "../services/api";
+import toast from "react-hot-toast";
 import "../styles/dashboard.css";
 
 export default function InvoiceDetails() {
@@ -24,7 +25,7 @@ export default function InvoiceDetails() {
       document.body.appendChild(link);
       link.click();
       link.remove();
-    } catch { alert("Download failed"); }
+    } catch { toast.error("Download failed"); }
   };
 
   const handlePrint = () => window.print();

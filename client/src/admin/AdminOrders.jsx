@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Link, useSearchParams, useNavigate } from "react-router-dom";
 import { orderAPI } from "../services/api";
+import toast from "react-hot-toast";
 import "../styles/dashboard.css";
 
 const STATUS_OPTIONS = ["All", "Measurement Scheduled", "Pending", "Cutting", "Stitching", "Ready", "Delivered"];
@@ -19,7 +20,6 @@ export default function AdminOrders() {
   const [customerFilter, setCustomerFilter] = useState(null); // { id, name }
   const [deleteConfirm, setDeleteConfirm] = useState(null); // order object
   const [deleting, setDeleting] = useState(false);
-  const [msg, setMsg] = useState({ type: "", text: "" });
   const [searchParams] = useSearchParams();
 
   useEffect(() => {
@@ -81,10 +81,9 @@ export default function AdminOrders() {
       // Remove all items that belong to this order
       setItems((prev) => prev.filter((i) => i.orderId?._id !== orderId));
       setDeleteConfirm(null);
-      setMsg({ type: "success", text: "Order deleted successfully" });
-      setTimeout(() => setMsg({ type: "", text: "" }), 3000);
-    } catch (err) {
-      setMsg({ type: "error", text: err.response?.data?.message || "Delete failed" });
+      toast.success("Order deleted successfully");
+          } catch (err) {
+      toast.error(err.response?.data?.message || "Delete failed");
     } finally {
       setDeleting(false);
     }
@@ -131,8 +130,7 @@ export default function AdminOrders() {
         </Link>
       </div>
 
-      {msg.text && <div className={`alert alert-${msg.type}`}>{msg.text}</div>}
-
+      
       {/* Customer filter active banner */}
       {customerFilter && (
         <div className="alert alert-info" style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>

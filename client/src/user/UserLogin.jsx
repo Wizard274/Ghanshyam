@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { authAPI } from "../services/api";
+import toast from "react-hot-toast";
 import "../styles/form.css";
 
 export default function UserLogin() {
@@ -8,13 +9,10 @@ export default function UserLogin() {
   const [form, setForm] = useState({ email: "", password: "" });
   const [showPass, setShowPass] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-
   const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError("");
     setLoading(true);
     try {
       const res = await authAPI.login(form);
@@ -24,7 +22,7 @@ export default function UserLogin() {
         navigate(res.data.user.role === "admin" ? "/admin" : "/dashboard");
       }
     } catch (err) {
-      setError(err.response?.data?.message || "Login failed. Check your credentials.");
+      toast.error(err.response?.data?.message || "Login failed. Check your credentials.");
     } finally {
       setLoading(false);
     }
@@ -42,11 +40,6 @@ export default function UserLogin() {
           <h2>Welcome Back</h2>
           <p className="auth-subtitle">Sign in to manage your tailoring orders</p>
 
-          {error && (
-            <div className="alert alert-error">
-              <i className="fa-solid fa-circle-exclamation" style={{ marginRight: 8 }} />{error}
-            </div>
-          )}
 
           <form onSubmit={handleSubmit}>
             <div className="form-group">

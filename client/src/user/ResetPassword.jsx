@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { authAPI } from "../services/api";
+import toast from "react-hot-toast";
 import "../styles/form.css";
 
 export default function ResetPassword() {
@@ -11,23 +12,19 @@ export default function ResetPassword() {
   const [form, setForm] = useState({ newPassword: "", confirmPassword: "" });
   const [showPass, setShowPass] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
-
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError("");
-    if (form.newPassword !== form.confirmPassword) return setError("Passwords do not match");
-    if (form.newPassword.length < 6) return setError("Password must be at least 6 characters");
+    if (form.newPassword !== form.confirmPassword) return toast.error("Passwords do not match");
+    if (form.newPassword.length < 6) return toast.error("Password must be at least 6 characters");
     setLoading(true);
     try {
       const res = await authAPI.resetPassword({ email, otp, newPassword: form.newPassword });
       if (res.data.success) {
-        setSuccess("Password reset successful! Redirecting to login...");
+        toast.success("Password reset successful! Redirecting to login...");
         setTimeout(() => navigate("/login"), 2000);
       }
     } catch (err) {
-      setError(err.response?.data?.message || "Reset failed");
+      toast.error(err.response?.data?.message || "Reset failed");
     } finally {
       setLoading(false);
     }
@@ -45,8 +42,8 @@ export default function ResetPassword() {
           <h2>Reset Password</h2>
           <p className="auth-subtitle">Set a new password for your account</p>
 
-          {error && <div className="alert alert-error">{error}</div>}
-          {success && <div className="alert alert-success"><i className="fa-solid fa-check" style={{ marginRight: 8 }} />{success}</div>}
+          
+          
 
           <form onSubmit={handleSubmit}>
             <div className="form-group">

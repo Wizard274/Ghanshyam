@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { workerAPI } from "../services/api";
+import toast from "react-hot-toast";
 
 const STATUS_STEPS = ["Pending", "Cutting", "Stitching", "Ready"];
 const STATUS_COLORS = { "Pending": "badge-pending", "Cutting": "badge-cutting", "Stitching": "badge-stitching", "Ready": "badge-ready" };
@@ -31,7 +32,7 @@ const WorkerDashboard = () => {
       await workerAPI.updateItemStatus(itemId, { status: newStatus });
       fetchItems();
     } catch (err) {
-      alert(err.response?.data?.message || "Failed to update status");
+      toast.error(err.response?.data?.message || "Failed to update status");
     } finally {
       setUpdating(null);
     }
