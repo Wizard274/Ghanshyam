@@ -2,30 +2,33 @@ import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
 import { orderAPI, invoiceAPI } from "../services/api";
+import { GlobalContext } from "../context/GlobalContext";
+import { useContext } from "react";
 import "../styles/dashboard.css";
 
 const PIE_COLORS = ["#E65100", "#C4941C", "#1565C0", "#6A1B9A", "#2E7D32"];
 
 export default function AdminDashboard() {
-  const [stats, setStats] = useState(null);
-  const [recent, setRecent] = useState([]);
-  const [invoiceStats, setInvoiceStats] = useState({ total: 0, paid: 0, pending: 0, revenue: 0 });
-  const [loading, setLoading] = useState(true);
+  const { dashboardData, setDashboardData } = useContext(GlobalContext);
+  const stats = dashboardData?.stats || null;
+  const recent = dashboardData?.recent || [];
+  const invoiceStats = dashboardData?.invoiceStats || { total: 0, paid: 0, pending: 0, revenue: 0 };
+  const [loading, setLoading] = useState(!dashboardData);
 
   useEffect(() => {
     Promise.all([orderAPI.getStats(), invoiceAPI.getAll()])
       .then(([statsRes, invRes]) => {
-        setStats(statsRes.data.stats);
-        setRecent(statsRes.data.recent || []);
         const invs = invRes.data.invoices || [];
-        setInvoiceStats({
+        const newInvoiceStats = {
           total: invs.length,
           paid: invs.filter((i) => i.paymentStatus === "Paid").length,
           pending: invs.filter((i) => i.paymentStatus === "Pending").length,
           revenue: invs.filter((i) => i.paymentStatus === "Paid").reduce((s, i) => s + i.totalAmount, 0),
-        });
-      }).finally(() => setLoading(false));
-  }, []);
+        };
+        setDashboardData({ stats: statsRes.data.stats, recent: statsRes.data.recent || [], invoiceStats: newInvoiceStats });
+        setLoading(false);
+      }).catch(() => setLoading(false));
+  }, [setDashboardData]);
 
   if (loading) return (
     <div style={{ display: "flex", justifyContent: "center", padding: 60 }}>

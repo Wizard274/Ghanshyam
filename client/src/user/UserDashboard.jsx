@@ -2,6 +2,8 @@ import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid } from "recharts";
 import { orderAPI } from "../services/api";
+import { GlobalContext } from "../context/GlobalContext";
+import { useContext } from "react";
 import "../styles/dashboard.css";
 
 const STATUS_STEPS = ["Pending", "Cutting", "Stitching", "Ready", "Delivered"];
@@ -14,17 +16,17 @@ function StatusBadge({ status }) {
 }
 
 export default function UserDashboard() {
-  const [stats, setStats] = useState(null);
-  const [recent, setRecent] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const user = JSON.parse(localStorage.getItem("user") || "{}");
+  const { user, dashboardData, setDashboardData } = useContext(GlobalContext);
+  const stats = dashboardData?.stats || null;
+  const recent = dashboardData?.recent || [];
+  const [loading, setLoading] = useState(!dashboardData);
 
   useEffect(() => {
     orderAPI.getStats().then((res) => {
-      setStats(res.data.stats);
-      setRecent(res.data.recent || []);
-    }).finally(() => setLoading(false));
-  }, []);
+      setDashboardData({ stats: res.data.stats, recent: res.data.recent || [] });
+      setLoading(false);
+    }).catch(() => setLoading(false));
+  }, [setDashboardData]);
 
   const pieData = stats
     ? [
