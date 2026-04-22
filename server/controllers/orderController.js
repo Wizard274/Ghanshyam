@@ -259,7 +259,13 @@ const getAllItems = async (req, res) => {
   try {
     const { status, search, userId, page = 1, limit = 7 } = req.query;
     let query = {};
-    if (status && status !== "All") query.status = status;
+    if (status && status !== "All") {
+      if (status === "Pending") {
+        query.status = { $in: ["Pending", null, ""] };
+      } else {
+        query.status = status;
+      }
+    }
     
     if (userId) {
       const orders = await Order.find({ userId }, "_id");
@@ -496,7 +502,7 @@ const getStats = async (req, res) => {
     
     const [total, pending, cutting, stitching, ready, delivered] = await Promise.all([
       Order.countDocuments(userId ? {userId} : {}),
-      OrderItem.countDocuments({ ...itemFilter, status: "Pending" }),
+      OrderItem.countDocuments({ ...itemFilter, status: { $in: ["Pending", null, ""] } }),
       OrderItem.countDocuments({ ...itemFilter, status: "Cutting" }),
       OrderItem.countDocuments({ ...itemFilter, status: "Stitching" }),
       OrderItem.countDocuments({ ...itemFilter, status: "Ready" }),
