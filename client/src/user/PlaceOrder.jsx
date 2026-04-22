@@ -87,6 +87,12 @@ export default function PlaceOrder() {
 
     for(let i=0; i<items.length; i++) {
         if(!items[i].clothType) return toast.error(`Please select a cloth type for Item ${i+1}`);
+        if (measurementType === "self") {
+            const hasMeasurements = Object.values(items[i].measurement).some(val => val && String(val).trim() !== "");
+            if (!items[i].showMeasurement || !hasMeasurements) {
+                return toast.error(`Please add measurements for Item ${i+1}`);
+            }
+        }
     }
 
     toast.error(""); setLoading(true);
@@ -317,8 +323,11 @@ export default function PlaceOrder() {
                                 </div>
                             ) : (
                                 <div className="empty-state" style={{ padding: "20px", marginTop: 20 }}>
-                                    <i className="fa-solid fa-ruler" style={{ fontSize: 24 }} />
-                                    <p style={{ fontSize: 13, marginTop: 10 }}>Measurements act as optional parameters.</p>
+                                    <i className="fa-solid fa-ruler" style={{ fontSize: 24, color: "var(--danger)" }} />
+                                    <p style={{ fontSize: 13, marginTop: 10, color: "var(--danger)", fontWeight: 500 }}>Measurements are required for self-measurement.</p>
+                                    <button type="button" className="btn btn-primary btn-sm" style={{ marginTop: 10 }} onClick={() => handleItemChange(index, "showMeasurement", true)}>
+                                        <i className="fa-solid fa-plus" /> Add Measurements
+                                    </button>
                                 </div>
                             )}
                         </div>
