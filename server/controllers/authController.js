@@ -4,7 +4,7 @@ const jwt = require("jsonwebtoken");
 const { generateOTP, sendOTPEmail } = require("../utils/sendOtp");
 
 const generateTokens = (id, role) => {
-  const accessToken = jwt.sign({ id, role }, process.env.JWT_SECRET, { expiresIn: "15m" });
+  const accessToken = jwt.sign({ id, role }, process.env.JWT_SECRET, { expiresIn: "120m" });
   const refreshToken = jwt.sign({ id, role }, process.env.JWT_SECRET, { expiresIn: "7d" });
   return { accessToken, refreshToken };
 };
