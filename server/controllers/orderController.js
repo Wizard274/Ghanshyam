@@ -499,7 +499,7 @@ const getStats = async (req, res) => {
     
     const [total, pending, cutting, stitching, ready, delivered] = await Promise.all([
       Order.countDocuments(userId ? {userId} : {}),
-      OrderItem.countDocuments({ ...itemFilter, status: { $in: ["Pending", null, ""] } }),
+      OrderItem.countDocuments({ ...itemFilter, status: { $in: userId ? ["Pending", null, ""] : ["Pending", null, "", "Measurement Scheduled"] } }),
       OrderItem.countDocuments({ ...itemFilter, status: "Cutting" }),
       OrderItem.countDocuments({ ...itemFilter, status: "Stitching" }),
       OrderItem.countDocuments({ ...itemFilter, status: "Ready" }),
