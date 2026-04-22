@@ -162,7 +162,12 @@ export default function AdminOrders() {
           <i className="fa-solid fa-spinner fa-spin" style={{ fontSize: 32, color: "var(--primary)" }} />
         </div>
       ) : items.length === 0 ? (
-        <div className="card"><div className="empty-state"><i className="fa-solid fa-inbox" /><p>No items found</p></div></div>
+        <div className="card">
+          <div className="empty-state">
+            <i className="fa-solid fa-inbox" />
+            <p>{customerFilter ? `No order has been placed by ${customerFilter.name}` : "No items found"}</p>
+          </div>
+        </div>
       ) : (
         <div className="card" style={{ padding: 0, overflow: "hidden" }}>
           <div className="table-wrap">
