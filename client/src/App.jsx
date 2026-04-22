@@ -1,8 +1,6 @@
 import React from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { Toaster } from "react-hot-toast";
-import { GlobalProvider, GlobalContext } from "./context/GlobalContext";
-import { useContext } from "react";
 
 // Public pages
 import HomePage from "./pages/HomePage";
@@ -45,8 +43,16 @@ import WorkerDashboard from "./worker/WorkerDashboard";
 import WorkerProfile from "./worker/WorkerProfile";
 import WorkerItemDetails from "./worker/WorkerItemDetails";
 
+const getUser = () => {
+  try {
+    const token = localStorage.getItem("token");
+    const user = JSON.parse(localStorage.getItem("user") || "null");
+    return token && user ? user : null;
+  } catch { return null; }
+};
+
 const ProtectedRoute = ({ children, role }) => {
-  const { user } = useContext(GlobalContext);
+  const user = getUser();
   if (!user) return <Navigate to="/login" replace />;
   if (role && user.role !== role) {
      if (user.role === "admin") return <Navigate to="/admin" replace />;
@@ -58,7 +64,7 @@ const ProtectedRoute = ({ children, role }) => {
 
 export default function App() {
   return (
-    <GlobalProvider>
+    <>
       <Toaster position="top-center" />
       <BrowserRouter>
         <Routes>
@@ -103,6 +109,6 @@ export default function App() {
           <Route path="*" element={<Navigate to="/" />} />
         </Routes>
       </BrowserRouter>
-    </GlobalProvider>
+    </>
   );
 }

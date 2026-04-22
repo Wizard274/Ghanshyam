@@ -8,74 +8,14 @@ const API = axios.create({
   withCredentials: true
 });
 
-const getCacheKey = (config) => {
-  let key = config.url;
-  if (config.params) {
-    key += '?' + new URLSearchParams(config.params).toString();
-  }
-  return `api_cache_${key}`;
-};
-
-const getCacheExpiry = (url) => {
-  if (url.includes('/orders/stats')) return 5 * 60 * 1000;
-  if (url.includes('/users/profile')) return 15 * 60 * 1000;
-  if (url.includes('/orders')) return 2 * 60 * 1000;
-  return 2 * 60 * 1000; // default 2 minutes
-};
-
-const clearApiCache = () => {
-  Object.keys(localStorage).forEach(key => {
-    if (key.startsWith('api_cache_')) localStorage.removeItem(key);
-  });
-};
-
 API.interceptors.request.use((config) => {
   const token = localStorage.getItem("token");
   if (token) config.headers.Authorization = `Bearer ${token}`;
-
-  if (config.method === 'get') {
-    const key = getCacheKey(config);
-    const cached = localStorage.getItem(key);
-    if (cached) {
-      try {
-        const { data, expiry } = JSON.parse(cached);
-        if (Date.now() < expiry) {
-          config.adapter = () => Promise.resolve({
-            data,
-            status: 200,
-            statusText: 'OK',
-            headers: {},
-            config,
-            request: {}
-          });
-        } else {
-          localStorage.removeItem(key);
-        }
-      } catch (e) {
-        localStorage.removeItem(key);
-      }
-    }
-  } else if (['post', 'put', 'patch', 'delete'].includes(config.method)) {
-    clearApiCache();
-  }
-
   return config;
 });
 
 API.interceptors.response.use(
-  (res) => {
-    if (res.config.method === 'get') {
-      const key = getCacheKey(res.config);
-      const cacheData = {
-        data: res.data,
-        expiry: Date.now() + getCacheExpiry(res.config.url)
-      };
-      try {
-        localStorage.setItem(key, JSON.stringify(cacheData));
-      } catch(e) {}
-    }
-    return res;
-  },
+  (res) => res,
   async (err) => {
     const originalRequest = err.config;
     if (err.response?.status === 401 && !originalRequest._retry) {
