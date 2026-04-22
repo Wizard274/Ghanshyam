@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
-import { orderAPI, paymentAPI } from "../services/api";
+import { orderAPI, paymentAPI, IMAGE_BASE_URL } from "../services/api";
 import toast from "react-hot-toast";
 import "../styles/dashboard.css";
 import "../styles/form.css";
@@ -142,7 +142,7 @@ export default function OrderDetails() {
         {order.designImage && (
             <div style={{ marginTop: 12 }}>
                 <div style={{ fontSize: 12, color: "var(--text-gray)", marginBottom: 6 }}>Global Design Reference</div>
-                <img src={`/uploads/${order.designImage}`} alt="Design" style={{ width: "100%", borderRadius: 8, maxHeight: 180, objectFit: "cover" }} />
+                <img src={`${IMAGE_BASE_URL}${order.designImage}`} alt="Design" style={{ width: "100%", borderRadius: 8, maxHeight: 180, objectFit: "cover" }} />
             </div>
         )}
 

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
-import { workerAPI } from "../services/api";
+import { workerAPI, IMAGE_BASE_URL } from "../services/api";
 import toast from "react-hot-toast";
 import "../styles/form.css";
 
@@ -148,7 +148,7 @@ export default function WorkerItemDetails() {
           <h4 style={{ marginBottom: 16 }}>Reference Design</h4>
           <div style={{ textAlign: "center", background: "var(--bg-light)", padding: 20, borderRadius: 8, border: "1px dashed var(--border)" }}>
             <img 
-              src={`http://localhost:5000/uploads/${item.orderId.designImage}`} 
+              src={`${IMAGE_BASE_URL}${item.orderId.designImage}`} 
               alt="Design Reference" 
               style={{ maxWidth: "100%", maxHeight: 400, borderRadius: 8, boxShadow: "0 4px 12px rgba(0,0,0,0.1)" }} 
             />

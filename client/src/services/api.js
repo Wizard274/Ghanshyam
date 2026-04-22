@@ -1,7 +1,10 @@
 import axios from "axios";
 
+const BASE_URL = "https://ghanshyam-t73d.onrender.com";
+export const IMAGE_BASE_URL = `${BASE_URL}/uploads/`;
+
 const API = axios.create({
-  baseURL: "https://ghanshyam-t73d.onrender.com/api",
+  baseURL: `${BASE_URL}/api`,
   withCredentials: true
 });
 
@@ -21,7 +24,7 @@ API.interceptors.response.use(
       }
       originalRequest._retry = true;
       try {
-        const res = await axios.post("https://ghanshyam-t73d.onrender.com/api/auth/refresh", {}, { withCredentials: true });
+        const res = await axios.post(`${BASE_URL}/api/auth/refresh`, {}, { withCredentials: true });
         if (res.data.success) {
           localStorage.setItem("token", res.data.token);
           originalRequest.headers.Authorization = `Bearer ${res.data.token}`;

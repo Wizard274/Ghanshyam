@@ -53,7 +53,7 @@ export default function ManageWorkers() {
     }
   };
 
-  if (loading) return <div>Loading...</div>;
+  if (loading) return <div style={{ display: "flex", justifyContent: "center", padding: 60 }}><i className="fa-solid fa-spinner fa-spin" style={{ fontSize: 32, color: "var(--primary)" }} /></div>;
 
   return (
     <div>
