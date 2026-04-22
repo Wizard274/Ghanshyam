@@ -9,18 +9,22 @@ const STATUS_COLORS = { "Measurement Scheduled": "badge-pending", Pending: "badg
 
 export default function AdminOrders() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   // We'll primarily display items now, but still keep track of deleteConfirm which relies on order.
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
-  const [status, setStatus] = useState("All");
+  const [status, setStatus] = useState(() => searchParams.get("status") || "All");
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
-  const [customerFilter, setCustomerFilter] = useState(null); // { id, name }
+  const [customerFilter, setCustomerFilter] = useState(() => {
+    const uid = searchParams.get("userId");
+    const uname = searchParams.get("customerName");
+    return uid ? { id: uid, name: decodeURIComponent(uname || "") } : null;
+  }); // { id, name }
   const [deleteConfirm, setDeleteConfirm] = useState(null); // order object
   const [deleting, setDeleting] = useState(false);
-  const [searchParams] = useSearchParams();
 
   useEffect(() => {
     const handler = setTimeout(() => {
@@ -29,14 +33,6 @@ export default function AdminOrders() {
     }, 700);
     return () => clearTimeout(handler);
   }, [search]);
-
-  useEffect(() => {
-    const s = searchParams.get("status");
-    const uid = searchParams.get("userId");
-    const uname = searchParams.get("customerName");
-    if (s) setStatus(s);
-    if (uid) setCustomerFilter({ id: uid, name: decodeURIComponent(uname || "") });
-  }, []);
 
   useEffect(() => {
     fetchItems(debouncedSearch, status, customerFilter?.id || null, page);
