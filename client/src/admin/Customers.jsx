@@ -7,6 +7,7 @@ import "../styles/dashboard.css";
 export default function Customers() {
   const navigate = useNavigate();
   const [customers, setCustomers] = useState([]);
+  const [totalCustomers, setTotalCustomers] = useState(0);
   const [loading, setLoading] = useState(true);
   
   const [search, setSearch] = useState("");
@@ -35,6 +36,7 @@ export default function Customers() {
       setCustomers(res.data.customers);
       setTotalPages(res.data.totalPages || 1);
       setPage(res.data.currentPage || 1);
+      setTotalCustomers(res.data.totalCustomers || res.data.customers.length);
     } finally {
       setLoading(false);
     }
@@ -86,7 +88,7 @@ export default function Customers() {
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
         <h1 className="page-title" style={{ margin: 0 }}>Customers</h1>
         <div style={{ fontSize: 13, color: "var(--text-gray)" }}>
-          <i className="fa-solid fa-users" style={{ marginRight: 6 }} />{customers.length} registered
+          <i className="fa-solid fa-users" style={{ marginRight: 6 }} />{totalCustomers} registered
         </div>
       </div>
 

@@ -57,7 +57,7 @@ const getAllCustomers = async (req, res) => {
     const totalPages = Math.ceil(totalCustomers / parsedLimit) || 1;
     
     const customers = await User.find(query).select("-password").sort({ createdAt: -1 }).skip(skip).limit(parsedLimit);
-    res.json({ success: true, customers, totalPages, currentPage: parsedPage });
+    res.json({ success: true, customers, totalPages, currentPage: parsedPage, totalCustomers });
   } catch (err) {
     res.status(500).json({ success: false, message: "Server error" });
   }
