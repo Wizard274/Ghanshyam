@@ -1,15 +1,8 @@
-const nodemailer = require("nodemailer");
+const { sendBrevoEmail } = require("./brevoConfig");
 
 const generateOTP = () => Math.floor(100000 + Math.random() * 900000).toString();
 
 const sendOTPEmail = async (email, otp, type = "register") => {
-  const transporter = nodemailer.createTransport({
-    service: "gmail",
-    auth: {
-      user: process.env.EMAIL_USER,
-      pass: process.env.EMAIL_PASS,
-    },
-  });
 
   let theme, title, message, subject;
 
@@ -55,24 +48,14 @@ const sendOTPEmail = async (email, otp, type = "register") => {
     </div>
   `;
 
-  await transporter.sendMail({
-    from: `"ઘનશ્યામ Ladies Tailor" <${process.env.EMAIL_USER}>`,
-    to: email,
-    subject,
-    html,
-  });
+  const textContent = `${title}\n\n${message}\n\nYour OTP is: ${otp}\n\nThis OTP expires in 5 minutes. Do not share it with anyone.`;
+
+  await sendBrevoEmail(subject, html, textContent, email);
 
   return otp;
 };
 
 const sendWorkerWelcomeEmail = async (email, password) => {
-  const transporter = nodemailer.createTransport({
-    service: "gmail",
-    auth: {
-      user: process.env.EMAIL_USER,
-      pass: process.env.EMAIL_PASS,
-    },
-  });
 
   const html = `
     <div style="font-family: 'Segoe UI', sans-serif; max-width: 600px; margin: 0 auto; background: #fff; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 24px rgba(0,0,0,0.08);">
@@ -96,12 +79,9 @@ const sendWorkerWelcomeEmail = async (email, password) => {
     </div>
   `;
 
-  await transporter.sendMail({
-    from: `"ઘનશ્યામ Ladies Tailor" <${process.env.EMAIL_USER}>`,
-    to: email,
-    subject: "Your Worker Account Created - ઘનશ્યામ Ladies Tailor",
-    html,
-  });
+  const textContent = `Welcome to the Team!\n\nYour worker profile has been successfully created. You can log into the worker dashboard using the credentials below:\n\nEmail: ${email}\nInitial Password: ${password}\n\nNote: Change your password after your first login to keep your account secure.`;
+
+  await sendBrevoEmail("Your Worker Account Created - ઘનશ્યામ Ladies Tailor", html, textContent, email);
 };
 
 module.exports = { generateOTP, sendOTPEmail, sendWorkerWelcomeEmail };

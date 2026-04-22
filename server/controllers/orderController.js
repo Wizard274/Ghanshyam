@@ -4,7 +4,7 @@ const Invoice = require("../models/invoiceModel");
 const AppointmentSlot = require("../models/appointmentSlotModel");
 const Appointment = require("../models/appointmentModel");
 const User = require("../models/userModel");
-const { sendDeliveryScheduledEmail, sendOrderCompletedEmail, sendChallanEmail } = require("../utils/emailUtils");
+const { sendDeliveryScheduledEmail, sendOrderCompletedEmail, sendChallanEmail, sendDeliveredEmail } = require("../utils/emailUtils");
 const { generateInvoicePDF } = require("../utils/generateInvoice");
 const { generateChallanPDF } = require("../utils/generateChallan");
 const multer = require("multer");
@@ -406,6 +406,16 @@ const updateItemStatus = async (req, res) => {
                  invoice.paymentMethod = "Cash";
                  invoice.remainingAmount = 0;
                  await invoice.save();
+             }
+
+             // Send Delivered Thank You Email
+             try {
+                const customer = await User.findById(order.userId);
+                if (customer) {
+                    await sendDeliveredEmail(order, customer);
+                }
+             } catch (emailErr) {
+                console.error("Failed to send delivered email", emailErr);
              }
         }
 

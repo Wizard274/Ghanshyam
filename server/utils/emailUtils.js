@@ -1,19 +1,8 @@
-const nodemailer = require("nodemailer");
+const { sendBrevoEmail } = require("./brevoConfig");
 const OrderItem = require("../models/orderItemModel");
 const { generateChallanPDF } = require("./generateChallan");
 
-const createTransporter = () => {
-  return nodemailer.createTransport({
-    service: "gmail",
-    auth: {
-      user: process.env.EMAIL_USER,
-      pass: process.env.EMAIL_PASS,
-    },
-  });
-};
-
 const sendDeliveryScheduledEmail = async (order, customer, invoiceNumber, paymentStatus) => {
-  const transporter = createTransporter();
 
   // Defensive check inside the mailer
   if (!order.deliveryDate) {
@@ -72,20 +61,22 @@ const sendDeliveryScheduledEmail = async (order, customer, invoiceNumber, paymen
     </div>
   `;
 
+  const textContent = `Hello ${customer.name},\n\nThank you for choosing Ghanshyam Ladies Tailor. Your order has been successfully created and is now confirmed.\n\nOrder Number: ${order.orderNumber}\nItems Tracked: ${itemsString}\nPayment Status: ${paymentStatus}\n\nYour order will be ready by: ${formattedDate}\n\nWe appreciate your trust in Ghanshyam Ladies Tailor.`;
+
   try {
-    await transporter.sendMail({
-      from: `"Ghanshyam Ladies Tailor" <${process.env.EMAIL_USER}>`,
-      to: customer.email,
-      subject: "Your Order is Confirmed – Delivery Scheduled",
+    await sendBrevoEmail(
+      "Your Order is Confirmed – Delivery Scheduled",
       html,
-    });
+      textContent,
+      customer.email,
+      customer.name
+    );
   } catch (error) {
     console.error("Order confirmation email failed to send:", error);
   }
 };
 
 const sendChallanEmail = async (order, customer, challanPdfBuffer) => {
-  const transporter = createTransporter();
 
   const html = `
     <div style="font-family: 'Segoe UI', sans-serif; max-width: 600px; margin: 0 auto; background: #fff; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 24px rgba(0,0,0,0.08);">
@@ -107,23 +98,24 @@ const sendChallanEmail = async (order, customer, challanPdfBuffer) => {
     </div>
   `;
 
-  await transporter.sendMail({
-    from: `"ઘનશ્યામ Ladies Tailor" <${process.env.EMAIL_USER}>`,
-    to: customer.email,
-    subject: `Challan / Estimate - ${order.orderNumber} | ઘનશ્યામ Ladies Tailor`,
+  const textContent = `Dear ${customer.name},\n\nAn estimate (Challan) for your order ${order.orderNumber} has been generated and is attached to this email.\n\nPlease pay the 35% advance amount (₹${order.advanceAmount.toFixed(2)}) online via our portal to confirm your order. We cannot begin processing without it.`;
+
+  const attachments = [{
+    name: `EST-${order.orderNumber}.pdf`,
+    content: challanPdfBuffer.toString('base64')
+  }];
+
+  await sendBrevoEmail(
+    `Challan / Estimate - ${order.orderNumber} | ઘનશ્યામ Ladies Tailor`,
     html,
-    attachments: [
-      {
-        filename: `EST-${order.orderNumber}.pdf`,
-        content: challanPdfBuffer,
-        contentType: "application/pdf"
-      }
-    ]
-  });
+    textContent,
+    customer.email,
+    customer.name,
+    attachments
+  );
 };
 
 const sendOrderCompletedEmail = async (order, customer, invoicePdfBuffer, invoiceTitle) => {
-  const transporter = createTransporter();
 
   const html = `
     <div style="font-family: 'Segoe UI', sans-serif; max-width: 600px; margin: 0 auto; background: #fff; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 24px rgba(0,0,0,0.08);">
@@ -148,23 +140,61 @@ const sendOrderCompletedEmail = async (order, customer, invoicePdfBuffer, invoic
     </div>
   `;
 
-  await transporter.sendMail({
-    from: `"ઘનશ્યામ Ladies Tailor" <${process.env.EMAIL_USER}>`,
-    to: customer.email,
-    subject: `Order Completed - ${order.orderNumber} | ઘનશ્યામ Ladies Tailor`,
+  const textContent = `Dear ${customer.name},\n\nGreat news! Your order ${order.orderNumber} (${order.clothType}) has been completed and is now ready.\n\nPlease find your invoice attached to this email. You may collect your garment from our shop at your convenience.\n\nThank you for choosing ઘનશ્યામ Ladies Tailor! We hope you love the fit.`;
+
+  const attachments = [{
+    name: `${invoiceTitle || "Invoice"}.pdf`,
+    content: invoicePdfBuffer.toString('base64')
+  }];
+
+  await sendBrevoEmail(
+    `Order Completed - ${order.orderNumber} | ઘનશ્યામ Ladies Tailor`,
     html,
-    attachments: [
-      {
-        filename: `${invoiceTitle || "Invoice"}.pdf`,
-        content: invoicePdfBuffer,
-        contentType: "application/pdf"
-      }
-    ]
-  });
+    textContent,
+    customer.email,
+    customer.name,
+    attachments
+  );
+};
+
+const sendDeliveredEmail = async (order, customer) => {
+  const html = `
+    <div style="font-family: 'Segoe UI', sans-serif; max-width: 600px; margin: 0 auto; background: #fff; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 24px rgba(0,0,0,0.08);">
+      <div style="background: linear-gradient(135deg, #1E3A8A 0%, #3B82F6 100%); padding: 32px; text-align: center;">
+        <h1 style="color: #fff; margin: 0; font-size: 24px; letter-spacing: 1px;">Thank You! 🛍️</h1>
+      </div>
+      <div style="padding: 40px 32px; text-align: left;">
+        <p style="color: #666; font-size: 16px; margin-bottom: 20px;">Dear ${customer.name},</p>
+        <p style="color: #333; font-size: 16px; margin-bottom: 20px;">
+          Your order <strong>${order.orderNumber}</strong> has been successfully delivered. We hope you are delighted with the fit and quality of your new garment.
+        </p>
+        <p style="color: #333; font-size: 16px; margin-bottom: 20px;">
+          It was a pleasure serving you. We look forward to seeing you again soon for your future tailoring needs.
+        </p>
+        <p style="color: #666; font-size: 15px;">
+          Warm regards,<br/><strong>ઘનશ્યામ Ladies Tailor</strong>
+        </p>
+      </div>
+      <div style="background: #f9f5f2; padding: 16px; text-align: center;">
+        <p style="color: #aaa; font-size: 12px; margin: 0;">© 2026 ઘનશ્યામ Ladies Tailor. All rights reserved.</p>
+      </div>
+    </div>
+  `;
+
+  const textContent = `Dear ${customer.name},\n\nYour order ${order.orderNumber} has been successfully delivered. We hope you are delighted with the fit and quality of your new garment.\n\nIt was a pleasure serving you. We look forward to seeing you again soon for your future tailoring needs.\n\nWarm regards,\nઘનશ્યામ Ladies Tailor`;
+
+  await sendBrevoEmail(
+    `Order Delivered - Thank You! | ઘનશ્યામ Ladies Tailor`,
+    html,
+    textContent,
+    customer.email,
+    customer.name
+  );
 };
 
 module.exports = {
   sendDeliveryScheduledEmail,
   sendOrderCompletedEmail,
-  sendChallanEmail
+  sendChallanEmail,
+  sendDeliveredEmail
 };
