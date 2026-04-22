@@ -56,7 +56,7 @@ export default function AdminAppointments() {
       setGenerating(true);
       try {
           const res = await appointmentAPI.generateSlots(form);
-          setMsg(res.data.message);
+          toast.success(res.data.message || "Slots generated successfully");
           fetchSlots();
           
       } catch (err) {
