@@ -48,7 +48,7 @@ export default function PlaceOrder() {
   const [slots, setSlots] = useState([]);
   const [selectedSlot, setSelectedSlot] = useState("");
   const [fetchingSlots, setFetchingSlots] = useState(false);
-  const [designImage, setDesignImage] = useState(null);
+  const [designImages, setDesignImages] = useState([]);
   const [loading, setLoading] = useState(false);
   const handleItemChange = (i, field, value) => {
     const newItems = [...items];
@@ -112,7 +112,11 @@ export default function PlaceOrder() {
 
       formData.append("items", JSON.stringify(cleanedItems));
 
-      if (designImage) formData.append("designImage", designImage);
+      if (designImages && designImages.length > 0) {
+        Array.from(designImages).forEach(file => {
+          formData.append("designImages", file);
+        });
+      }
 
       const res = await orderAPI.create(formData);
       if (res.data.success) {
@@ -204,14 +208,16 @@ export default function PlaceOrder() {
         <div className="card" style={{ marginBottom: 20 }}>
             <div className="form-section-title"><i className="fa-solid fa-image" style={{ marginRight: 8 }} />Design Reference</div>
             <div className="form-group">
-              <label>Upload a global reference image (Optional)</label>
+              <label>Upload global reference images (Optional, max 5)</label>
               <input
                 className="form-control"
                 type="file"
+                multiple
                 accept="image/*"
-                onChange={(e) => setDesignImage(e.target.files[0])}
+                onChange={(e) => setDesignImages(e.target.files)}
                 style={{ padding: "8px 12px" }}
               />
+              {designImages.length > 0 && <div style={{marginTop: 8, fontSize: 12, color: "var(--primary)"}}>{designImages.length} image(s) selected</div>}
               <small style={{ color: "var(--text-gray)", fontSize: 12 }}>Max 5MB</small>
             </div>
         </div>

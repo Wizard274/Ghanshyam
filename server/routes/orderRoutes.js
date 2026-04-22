@@ -8,7 +8,7 @@ const {
 } = require("../controllers/orderController");
 
 router.get("/stats", protect, getStats);
-router.post("/create", protect, upload.single("designImage"), createOrder);
+router.post("/create", protect, upload.array("designImages", 5), createOrder);
 router.get("/my-orders", protect, getUserOrders);
 router.get("/all", protect, adminOnly, getAllOrders);
 router.get("/items/all", protect, adminOnly, getAllItems);

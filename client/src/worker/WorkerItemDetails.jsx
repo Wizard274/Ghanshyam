@@ -148,10 +148,26 @@ export default function WorkerItemDetails() {
           <h4 style={{ marginBottom: 16 }}>Reference Design</h4>
           <div style={{ textAlign: "center", background: "var(--bg-light)", padding: 20, borderRadius: 8, border: "1px dashed var(--border)" }}>
             <img 
-              src={`${IMAGE_BASE_URL}${item.orderId.designImage}`} 
+              src={`${item.orderId.designImage.startsWith('http') ? '' : IMAGE_BASE_URL}${item.orderId.designImage}`} 
               alt="Design Reference" 
               style={{ maxWidth: "100%", maxHeight: 400, borderRadius: 8, boxShadow: "0 4px 12px rgba(0,0,0,0.1)" }} 
             />
+          </div>
+        </div>
+      )}
+      {item.orderId?.designImages && item.orderId.designImages.length > 0 && (
+        <div className="card" style={{ padding: 24, marginBottom: 20 }}>
+          <h4 style={{ marginBottom: 16 }}>Reference Designs</h4>
+          <div style={{ display: "flex", gap: 12, overflowX: "auto", paddingBottom: "12px" }}>
+            {item.orderId.designImages.map((img, i) => (
+              <a key={i} href={img.startsWith('http') ? img : `${IMAGE_BASE_URL}${img}`} target="_blank" rel="noreferrer" style={{ flexShrink: 0 }}>
+                <img 
+                  src={img.startsWith('http') ? img : `${IMAGE_BASE_URL}${img}`} 
+                  alt={`Design Reference ${i+1}`} 
+                  style={{ maxHeight: 200, borderRadius: 8, boxShadow: "0 4px 12px rgba(0,0,0,0.1)", cursor: "pointer" }} 
+                />
+              </a>
+            ))}
           </div>
         </div>
       )}

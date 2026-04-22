@@ -21,6 +21,7 @@ const orderSchema = new mongoose.Schema(
     confirmationEmailSent: { type: Boolean, default: false },
     notes: { type: String },
     designImage: { type: String },
+    designImages: [{ type: String }],
   },
   { timestamps: true }
 );

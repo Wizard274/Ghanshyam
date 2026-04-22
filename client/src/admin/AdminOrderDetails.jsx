@@ -249,7 +249,19 @@ export default function AdminOrderDetails() {
           {order.designImage && (
             <div style={{ marginTop: 12 }}>
               <div style={{ fontSize: 12, color: "var(--text-gray)", marginBottom: 6 }}>Global Order Design Reference</div>
-              <img src={`${IMAGE_BASE_URL}${order.designImage}`} alt="Design" style={{ width: "100%", borderRadius: 8, maxHeight: 160, objectFit: "cover" }} />
+              <img src={`${order.designImage.startsWith('http') ? '' : IMAGE_BASE_URL}${order.designImage}`} alt="Design" style={{ width: "100%", borderRadius: 8, maxHeight: 160, objectFit: "cover" }} />
+            </div>
+          )}
+          {order.designImages && order.designImages.length > 0 && (
+            <div style={{ marginTop: 12 }}>
+              <div style={{ fontSize: 12, color: "var(--text-gray)", marginBottom: 6 }}>Global Order Design References</div>
+              <div style={{ display: "flex", gap: 10, overflowX: "auto", paddingBottom: "8px" }}>
+                  {order.designImages.map((img, i) => (
+                    <a key={i} href={img.startsWith('http') ? img : `${IMAGE_BASE_URL}${img}`} target="_blank" rel="noreferrer" style={{ flexShrink: 0 }}>
+                      <img src={img.startsWith('http') ? img : `${IMAGE_BASE_URL}${img}`} alt={`Design ${i+1}`} style={{ borderRadius: 8, height: 120, objectFit: "cover", cursor: "pointer" }} />
+                    </a>
+                  ))}
+              </div>
             </div>
           )}
 

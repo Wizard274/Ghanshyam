@@ -8,26 +8,26 @@ const { sendDeliveryScheduledEmail, sendOrderCompletedEmail, sendChallanEmail, s
 const { generateInvoicePDF } = require("../utils/generateInvoice");
 const { generateChallanPDF } = require("../utils/generateChallan");
 const multer = require("multer");
-const path = require("path");
-const fs = require("fs");
+const { CloudinaryStorage } = require("multer-storage-cloudinary");
+const cloudinary = require("cloudinary").v2;
 
-const uploadsDir = path.join(__dirname, "../uploads");
-if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
-
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, uploadsDir),
-  filename: (req, file, cb) => cb(null, `order_${Date.now()}${path.extname(file.originalname)}`),
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
 });
+
+const storage = new CloudinaryStorage({
+  cloudinary: cloudinary,
+  params: {
+    folder: "ghanshyam-tailor",
+    allowed_formats: ["jpg", "jpeg", "png", "webp"],
+  },
+});
+
 const upload = multer({
   storage,
   limits: { fileSize: 5 * 1024 * 1024 },
-  fileFilter: (req, file, cb) => {
-    const allowed = /jpeg|jpg|png|gif|webp/;
-    const ext = allowed.test(path.extname(file.originalname).toLowerCase());
-    const mime = allowed.test(file.mimetype);
-    if (ext && mime) return cb(null, true);
-    cb(new Error("Only image files allowed"));
-  },
 });
 
 const createOrder = async (req, res) => {
@@ -56,13 +56,13 @@ const createOrder = async (req, res) => {
         }
     }
 
-    const designImage = req.file ? req.file.filename : null;
+    const designImages = req.files ? req.files.map(file => file.path) : [];
 
     const order = await Order.create({
         userId: req.user._id,
         deliveryDate: deliveryDate || null,
         measurementType: measurementType || "self",
-        designImage,
+        designImages,
         notes: notes || "",
         orderStatus: "Price Pending"
     });
@@ -477,10 +477,7 @@ const deleteOrder = async (req, res) => {
     await Invoice.deleteMany({ orderId: order._id });
     await OrderItem.deleteMany({ orderId: order._id });
 
-    if (order.designImage) {
-      const imgPath = path.join(uploadsDir, order.designImage);
-      if (fs.existsSync(imgPath)) fs.unlinkSync(imgPath);
-    }
+    // Images are stored in Cloudinary and handled automatically or through Cloudinary API
 
     await Order.findByIdAndDelete(req.params.id);
     res.json({ success: true, message: "Order deleted successfully" });
