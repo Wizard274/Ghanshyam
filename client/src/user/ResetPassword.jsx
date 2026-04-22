@@ -12,6 +12,7 @@ export default function ResetPassword() {
   const [form, setForm] = useState({ newPassword: "", confirmPassword: "" });
   const [showPass, setShowPass] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState(false);
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (form.newPassword !== form.confirmPassword) return toast.error("Passwords do not match");
@@ -20,6 +21,7 @@ export default function ResetPassword() {
     try {
       const res = await authAPI.resetPassword({ email, otp, newPassword: form.newPassword });
       if (res.data.success) {
+        setSuccess(true);
         toast.success("Password reset successful! Redirecting to login...");
         setTimeout(() => navigate("/login"), 2000);
       }
