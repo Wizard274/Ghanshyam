@@ -5,7 +5,7 @@ import "../styles/form.css";
 
 export default function Contact() {
   const user = JSON.parse(localStorage.getItem("user") || "{}");
-  const [form, setForm] = useState({ name: user.name || "", phone: "", message: "" });
+  const [form, setForm] = useState({ name: user.name || "", phone: user.phone || "", message: "" });
   const [loading, setLoading] = useState(false);
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -13,7 +13,7 @@ export default function Contact() {
     try {
       const res = await contactAPI.send(form);
       toast.success("Message sent! We will contact you soon. 🙏");
-      setForm({ ...form, message: "", phone: "" });
+      setForm({ ...form, message: "", phone: user.phone || "" });
     } catch (err) {
       toast.error("Failed to send message. Please try again.");
     } finally {
@@ -75,10 +75,6 @@ export default function Contact() {
         {/* Contact Form */}
         <div className="card">
           <div className="form-section-title"><i className="fa-solid fa-paper-plane" style={{ marginRight: 8 }} />Send Us a Message</div>
-
-          
-          
-
           <form onSubmit={handleSubmit}>
             <div className="form-group">
               <label>Your Name <span className="required">*</span></label>
