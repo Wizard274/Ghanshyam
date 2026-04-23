@@ -10,6 +10,7 @@ const adminNavItems = [
   { to: "/admin/appointments", icon: "fa-calendar-check", label: "Appointments" },
   { to: "/admin/invoices", icon: "fa-file-invoice-dollar", label: "Invoices" },
   { to: "/admin/messages", icon: "fa-envelope", label: "Messages" },
+  { to: "/admin/profile", icon: "fa-user-circle", label: "Profile" },
 ];
 
 export default function AdminLayout({ children }) {

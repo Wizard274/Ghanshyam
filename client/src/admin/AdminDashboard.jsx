@@ -36,9 +36,9 @@ export default function AdminDashboard() {
   const statCards = [
     { icon: "fa-list", label: "Total Orders", value: stats?.total || 0, cls: "total", link: "/admin/orders" },
     { icon: "fa-clock", label: "Pending", value: stats?.pending || 0, cls: "pending", link: "/admin/orders?status=Pending" },
-    { icon: "fa-cut", label: "Cutting", value: stats?.cutting || 0, cls: "stitching", link: "/admin/orders?status=Cutting" },
-    { icon: "🧵", label: "Stitching", value: stats?.stitching || 0, cls: "stitching", link: "/admin/orders?status=Stitching" },
+    { icon: "fa-spinner", label: "Process", value: (stats?.cutting || 0) + (stats?.stitching || 0), cls: "stitching", link: "/admin/orders" },
     { icon: "fa-check-circle", label: "Ready", value: stats?.ready || 0, cls: "delivered", link: "/admin/orders?status=Ready" },
+    { icon: "fa-truck", label: "Delivered", value: stats?.delivered || 0, cls: "delivered", link: "/admin/orders?status=Delivered" },
     { icon: "fa-indian-rupee-sign", label: "Revenue", value: `₹${(invoiceStats.revenue || 0).toLocaleString("en-IN")}`, cls: "invoices", link: "/admin/invoices" },
   ];
 

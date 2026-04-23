@@ -19,8 +19,8 @@ export default function Profile() {
   }, []);
 
   const showMsg = (type, text) => {
-    setMsg({ type, text });
-      };
+    toast[type](text);
+  };
 
   const handleProfileSave = async (e) => {
     e.preventDefault();
@@ -68,8 +68,8 @@ export default function Profile() {
         <div>
           <div style={{ fontFamily: "var(--font-display)", fontSize: 20, fontWeight: 700 }}>{profile.name}</div>
           <div style={{ color: "var(--text-gray)", fontSize: 14 }}>{profile.email}</div>
-          <div style={{ fontSize: 12, color: "var(--primary)", background: "var(--primary-pale)", borderRadius: 20, padding: "2px 10px", display: "inline-block", marginTop: 4 }}>
-            Customer Account
+          <div style={{ fontSize: 12, color: "var(--primary)", background: "var(--primary-pale)", borderRadius: 20, padding: "2px 10px", display: "inline-block", marginTop: 4, textTransform: "capitalize" }}>
+            {JSON.parse(localStorage.getItem("user") || "{}").role || "Customer"} Account
           </div>
         </div>
       </div>

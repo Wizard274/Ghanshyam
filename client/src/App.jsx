@@ -105,6 +105,7 @@ export default function App() {
           <Route path="/admin/appointments" element={<ProtectedRoute role="admin"><AdminLayout><AdminAppointments /></AdminLayout></ProtectedRoute>} />
           <Route path="/admin/measurements" element={<ProtectedRoute role="admin"><AdminLayout><AdminMeasurements /></AdminLayout></ProtectedRoute>} />
           <Route path="/admin/messages" element={<ProtectedRoute role="admin"><AdminLayout><AdminMessages /></AdminLayout></ProtectedRoute>} />
+          <Route path="/admin/profile" element={<ProtectedRoute role="admin"><AdminLayout><Profile /></AdminLayout></ProtectedRoute>} />
 
           <Route path="*" element={<Navigate to="/" />} />
         </Routes>
