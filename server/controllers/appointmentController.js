@@ -75,17 +75,23 @@ const getAvailableSlots = async (req, res) => {
         const { date } = req.query;
         let query = { isActive: true, $expr: { $lt: ["$booked", "$capacity"] } };
         
+        const now = new Date();
+        now.setUTCHours(now.getUTCHours() + 5);
+        now.setUTCMinutes(now.getUTCMinutes() + 30);
+        const todayMidnight = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+
+        // Auto-delete past slots
+        await AppointmentSlot.deleteMany({ date: { $lt: todayMidnight } });
+
         if (date) {
             const d = new Date(date);
             d.setHours(0, 0, 0, 0);
             query.date = d;
         } else {
             // Get from today to 1 month ahead
-            const today = new Date();
-            today.setHours(0, 0, 0, 0);
-            const nextMonth = new Date(today);
+            const nextMonth = new Date(todayMidnight);
             nextMonth.setMonth(nextMonth.getMonth() + 1);
-            query.date = { $gte: today, $lte: nextMonth };
+            query.date = { $gte: todayMidnight, $lte: nextMonth };
         }
 
         const slots = await AppointmentSlot.find(query).sort({ date: 1, startTime: 1 });
@@ -99,15 +105,21 @@ const getAvailableSlots = async (req, res) => {
 const getSlotsAdmin = async (req, res) => {
     try {
         const { date } = req.query;
+        const now = new Date();
+        now.setUTCHours(now.getUTCHours() + 5);
+        now.setUTCMinutes(now.getUTCMinutes() + 30);
+        const todayMidnight = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+
+        // Auto-delete past slots
+        await AppointmentSlot.deleteMany({ date: { $lt: todayMidnight } });
+
         let query = {};
         if (date) {
             const d = new Date(date);
              d.setHours(0, 0, 0, 0);
              query.date = d;
         } else {
-             const today = new Date();
-             today.setHours(0, 0, 0, 0);
-             query.date = { $gte: today };
+             query.date = { $gte: todayMidnight };
         }
 
         const slots = await AppointmentSlot.find(query).sort({ date: 1, startTime: 1 });
