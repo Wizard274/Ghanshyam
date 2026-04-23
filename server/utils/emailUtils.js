@@ -128,7 +128,7 @@ const sendOrderCompletedEmail = async (order, customer, invoicePdfBuffer, invoic
           Great news! Your order <strong>${order.orderNumber}</strong> (${order.clothType}) has been completed and is now ready.
         </p>
         <p style="color: #333; font-size: 16px; margin-bottom: 20px;">
-           Please find your invoice attached to this email. You may collect your garment from our shop at your convenience.
+           Please find your invoice attached to this email. Please select the delivery mode from your dashboard.
         </p>
         <p style="color: #666; font-size: 15px;">
            Thank you for choosing ઘનશ્યામ Ladies Tailor! We hope you love the fit.
