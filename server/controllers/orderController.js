@@ -503,15 +503,15 @@ const getStats = async (req, res) => {
         const orders = await Order.find({userId}, "_id");
         orderIds = orders.map(o => o._id);
     }
-    const itemFilter = userId ? { orderId: { $in: orderIds } } : {};
+    const orderFilter = userId ? { userId } : {};
     
     const [total, pending, cutting, stitching, ready, delivered] = await Promise.all([
-      Order.countDocuments(userId ? {userId} : {}),
-      OrderItem.countDocuments({ ...itemFilter, status: { $in: userId ? ["Pending", null, ""] : ["Pending", null, "", "Measurement Scheduled"] } }),
-      OrderItem.countDocuments({ ...itemFilter, status: "Cutting" }),
-      OrderItem.countDocuments({ ...itemFilter, status: "Stitching" }),
-      OrderItem.countDocuments({ ...itemFilter, status: "Ready" }),
-      OrderItem.countDocuments({ ...itemFilter, status: "Delivered" }),
+      Order.countDocuments(orderFilter),
+      Order.countDocuments({ ...orderFilter, orderStatus: { $nin: ["Cutting", "Stitching", "Ready", "Delivered"] } }),
+      Order.countDocuments({ ...orderFilter, orderStatus: "Cutting" }),
+      Order.countDocuments({ ...orderFilter, orderStatus: "Stitching" }),
+      Order.countDocuments({ ...orderFilter, orderStatus: "Ready" }),
+      Order.countDocuments({ ...orderFilter, orderStatus: "Delivered" }),
     ]);
 
     const invoiceFilter = userId ? { customerId: userId } : {};
