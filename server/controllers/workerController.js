@@ -7,7 +7,7 @@ const getAssignedItems = async (req, res) => {
     const items = await OrderItem.find({ assignedWorkerId: req.user._id })
       .populate({
         path: "orderId",
-        select: "orderNumber deliveryDate orderStatus designImage",
+        select: "orderNumber deliveryDate orderStatus designImage designImages",
         populate: { path: "userId", select: "name phone" }
       })
       .sort({ createdAt: -1 });
