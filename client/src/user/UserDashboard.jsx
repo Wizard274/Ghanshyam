@@ -165,20 +165,7 @@ export default function UserDashboard() {
         )}
       </div>
 
-      {/* Quick Links */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))", gap: 12, marginTop: 20 }}>
-        {[
-          { to: "/place-order", icon: "fa-plus-circle", label: "Place Order", color: "var(--primary)" },
-          { to: "/my-orders", icon: "fa-list-check", label: "My Orders", color: "var(--info)" },
-          { to: "/invoices", icon: "fa-file-invoice", label: "Invoices", color: "var(--accent)" },
-          { to: "/profile", icon: "fa-user-circle", label: "My Profile", color: "var(--success)" },
-        ].map((q) => (
-          <Link key={q.to} to={q.to} className="card" style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8, padding: 20, textAlign: "center", cursor: "pointer" }}>
-            <i className={`fa-solid ${q.icon}`} style={{ fontSize: 24, color: q.color }} />
-            <span style={{ fontSize: 13, fontWeight: 500, color: "var(--text-dark)" }}>{q.label}</span>
-          </Link>
-        ))}
-      </div>
+
     </div>
   );
 }

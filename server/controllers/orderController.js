@@ -54,6 +54,14 @@ const createOrder = async (req, res) => {
         if (!slot || !slot.isActive || slot.booked >= slot.capacity) {
             return res.status(400).json({ success: false, message: "Selected slot is no longer available" });
         }
+    } else if (measurementType === "self") {
+        for (let i = 0; i < parsedItems.length; i++) {
+            const meas = parsedItems[i].measurement || {};
+            const hasMeas = Object.values(meas).some(val => val && String(val).trim() !== "");
+            if (!hasMeas) {
+                return res.status(400).json({ success: false, message: `Measurements are required for ${parsedItems[i].clothType || "Item " + (i + 1)}` });
+            }
+        }
     }
 
     const designImages = req.files ? req.files.map(file => file.path) : [];
