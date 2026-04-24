@@ -120,7 +120,7 @@ const generateChallanPDF = (order, orderItems, customer) => {
     
     doc.rect(totX, y, 255, 42).fill(palerBg);
     doc.fillColor(textDark).font(boldFont).fontSize(12)
-       .text("Total Estimated Amount", totX + 16, y + 14, { width: 140, align: "left" })
+       .text("Total Amount", totX + 16, y + 14, { width: 140, align: "left" })
        .text(`₹${order.totalAmount.toFixed(2)}`, totX + 140, y + 14, { width: 100, align: "right" });
     
     y += 50;
