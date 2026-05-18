@@ -74,8 +74,16 @@ img { max-width: 100%; }
   border-radius: var(--radius-md);
   font-size: 14px;
   font-weight: 500;
-  transition: var(--transition);
+  transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.2s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.2s cubic-bezier(0.4, 0, 0.2, 1), color 0.2s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   cursor: pointer;
+}
+
+.btn:hover {
+  transform: translateY(-2px);
+}
+
+.btn:active {
+  transform: translateY(1px) scale(0.96);
 }
 
 .btn-primary {
@@ -84,7 +92,7 @@ img { max-width: 100%; }
   border: none;
   box-shadow: 0 2px 12px rgba(139,69,19,0.25);
 }
-.btn-primary:hover { background: var(--primary-dark); box-shadow: 0 4px 18px rgba(139,69,19,0.35); transform: translateY(-1px); }
+.btn-primary:hover { background: var(--primary-dark); box-shadow: 0 6px 20px rgba(139,69,19,0.4); }
 
 .btn-outline {
   background: transparent;
